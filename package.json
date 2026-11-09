@@ -1,9 +1,9 @@
 {
-  "name": "dbexplorer",
-  "displayName": "DB Explorer",
+  "name": "db-explorer-Multi-SQL",
+  "displayName": "DB Explorer Multi-SQL",
   "description": "%ext.description%",
   "version": "0.35.1",
-  "publisher": "local",
+  "publisher": "hugo0",
   "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
