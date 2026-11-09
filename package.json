@@ -1,0 +1,1410 @@
+{
+  "name": "dbexplorer",
+  "displayName": "DB Explorer",
+  "description": "%ext.description%",
+  "version": "0.35.1",
+  "publisher": "local",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:sql",
+    "onView:dbexplorer.connections",
+    "onView:dbexplorer.connectionForm",
+    "onView:dbexplorer.helpPanel",
+    "onView:dbexplorer.results",
+    "onView:dbexplorer.settingsPanel",
+    "onView:dbexplorer.library"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "dbexplorer",
+          "title": "DB Explorer",
+          "icon": "media/dbexplorer.svg"
+        }
+      ],
+      "panel": [
+        {
+          "id": "dbexplorerPanel",
+          "title": "DB Explorer",
+          "icon": "media/dbexplorer.svg"
+        }
+      ]
+    },
+    "views": {
+      "dbexplorer": [
+        {
+          "id": "dbexplorer.connections",
+          "name": "Schema Browser",
+          "when": "dbexplorer.sideTab != 'connection'"
+        },
+        {
+          "id": "dbexplorer.connectionForm",
+          "name": "%view.setup%",
+          "type": "webview",
+          "when": "dbexplorer.sideTab == 'connection'"
+        },
+        {
+          "id": "dbexplorer.settingsPanel",
+          "name": "%view.settingsTools%",
+          "type": "webview",
+          "visibility": "collapsed"
+        },
+        {
+          "id": "dbexplorer.helpPanel",
+          "name": "%view.help%",
+          "type": "webview",
+          "visibility": "collapsed"
+        },
+        {
+          "id": "dbexplorer.library",
+          "name": "%view.library%",
+          "type": "webview",
+          "visibility": "collapsed"
+        }
+      ],
+      "dbexplorerPanel": [
+        {
+          "id": "dbexplorer.results",
+          "name": "%view.results%",
+          "type": "webview"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "dbexplorer.connections",
+        "contents": "%welcome.connections%"
+      }
+    ],
+    "commands": [
+      {
+        "command": "dbexplorer.addConnection",
+        "title": "%cmd.addConnection%",
+        "icon": "$(add)"
+      },
+      {
+        "command": "dbexplorer.editConnection",
+        "title": "%cmd.editConnection%"
+      },
+      {
+        "command": "dbexplorer.removeConnection",
+        "title": "%cmd.removeConnection%"
+      },
+      {
+        "command": "dbexplorer.connect",
+        "title": "%cmd.connect%"
+      },
+      {
+        "command": "dbexplorer.disconnect",
+        "title": "%cmd.disconnect%",
+        "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "dbexplorer.setActive",
+        "title": "%cmd.setActive%",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "dbexplorer.refresh",
+        "title": "%cmd.refresh%",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "dbexplorer.changeSchema",
+        "title": "%cmd.changeSchema%",
+        "icon": "$(symbol-namespace)"
+      },
+      {
+        "command": "dbexplorer.newEditor",
+        "title": "%cmd.newEditor%",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "dbexplorer.executeStatement",
+        "title": "%cmd.executeStatement%",
+        "icon": "$(play)"
+      },
+      {
+        "command": "dbexplorer.executeScript",
+        "title": "%cmd.executeScript%",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "dbexplorer.explainPlan",
+        "title": "%cmd.explainPlan%",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "dbexplorer.describe",
+        "title": "%cmd.describe%"
+      },
+      {
+        "command": "dbexplorer.commit",
+        "title": "%cmd.commit%",
+        "icon": "$(check)"
+      },
+      {
+        "command": "dbexplorer.rollback",
+        "title": "%cmd.rollback%",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "dbexplorer.toggleAutoCommit",
+        "title": "%cmd.toggleAutoCommit%"
+      },
+      {
+        "command": "dbexplorer.cancel",
+        "title": "%cmd.cancel%",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "dbexplorer.history",
+        "title": "%cmd.history%"
+      },
+      {
+        "command": "dbexplorer.openDdl",
+        "title": "%cmd.openDdl%"
+      },
+      {
+        "command": "dbexplorer.selectData",
+        "title": "%cmd.selectData%"
+      },
+      {
+        "command": "dbexplorer.describeObject",
+        "title": "%cmd.describeObject%"
+      },
+      {
+        "command": "dbexplorer.copyName",
+        "title": "%cmd.copyName%"
+      },
+      {
+        "command": "dbexplorer.describeQuery",
+        "title": "%cmd.describeQuery%",
+        "icon": "$(symbol-field)"
+      },
+      {
+        "command": "dbexplorer.showResults",
+        "title": "%cmd.showResults%"
+      },
+      {
+        "command": "dbexplorer.runRoutine",
+        "title": "%cmd.runRoutine%"
+      },
+      {
+        "command": "dbexplorer.history.open",
+        "title": "%cmd.history.open%"
+      },
+      {
+        "command": "dbexplorer.history.insert",
+        "title": "%cmd.history.insert%"
+      },
+      {
+        "command": "dbexplorer.history.run",
+        "title": "%cmd.history.run%",
+        "icon": "$(play)"
+      },
+      {
+        "command": "dbexplorer.history.copy",
+        "title": "%cmd.history.copy%"
+      },
+      {
+        "command": "dbexplorer.history.delete",
+        "title": "%cmd.history.delete%",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "dbexplorer.history.clear",
+        "title": "%cmd.history.clear%",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "dbexplorer.suggest",
+        "title": "%cmd.suggest%"
+      },
+      {
+        "command": "dbexplorer.exportResults",
+        "title": "%cmd.exportResults%",
+        "icon": "$(export)"
+      },
+      {
+        "command": "dbexplorer.importTns",
+        "title": "%cmd.importTns%"
+      },
+      {
+        "command": "dbexplorer.disconnectAll",
+        "title": "%cmd.disconnectAll%",
+        "icon": "$(close-all)"
+      },
+      {
+        "command": "dbexplorer.toggleComment",
+        "title": "%cmd.toggleComment%",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "dbexplorer.toggleBlockComment",
+        "title": "%cmd.toggleBlockComment%"
+      },
+      {
+        "command": "dbexplorer.optimize",
+        "title": "%cmd.optimize%",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "dbexplorer.compareQueries",
+        "title": "%cmd.compareQueries%",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "dbexplorer.codeActions",
+        "title": "%cmd.codeActions%",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "dbexplorer.tree.filter",
+        "title": "%cmd.tree.filter%",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "dbexplorer.tree.clearFilter",
+        "title": "%cmd.tree.clearFilter%",
+        "icon": "$(filter-filled)"
+      },
+      {
+        "command": "dbexplorer.queryGraph",
+        "title": "%cmd.queryGraph%",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "dbexplorer.callGraph",
+        "title": "%cmd.callGraph%",
+        "icon": "$(type-hierarchy-sub)"
+      },
+      {
+        "command": "dbexplorer.tree.filterType",
+        "title": "%cmd.tree.filterType%",
+        "icon": "$(list-filter)"
+      },
+      {
+        "command": "dbexplorer.erDiagram",
+        "title": "%cmd.erDiagram%",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "dbexplorer.usedBy",
+        "title": "%cmd.usedBy%"
+      },
+      {
+        "command": "dbexplorer.usesWhat",
+        "title": "%cmd.usesWhat%"
+      },
+      {
+        "command": "dbexplorer.compareSchemas",
+        "title": "%cmd.compareSchemas%",
+        "icon": "$(git-compare)"
+      },
+      {
+        "command": "dbexplorer.favorite.add",
+        "title": "%cmd.favorite.add%",
+        "icon": "$(star-add)"
+      },
+      {
+        "command": "dbexplorer.favorite.open",
+        "title": "%cmd.favorite.open%"
+      },
+      {
+        "command": "dbexplorer.favorite.run",
+        "title": "%cmd.favorite.run%",
+        "icon": "$(play)"
+      },
+      {
+        "command": "dbexplorer.favorite.rename",
+        "title": "%cmd.favorite.rename%"
+      },
+      {
+        "command": "dbexplorer.favorite.delete",
+        "title": "%cmd.favorite.delete%",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "dbexplorer.favorite.pick",
+        "title": "%cmd.favorite.pick%",
+        "icon": "$(star-full)"
+      },
+      {
+        "command": "dbexplorer.tree.invalid",
+        "title": "%cmd.tree.invalid%",
+        "icon": "$(warning)"
+      },
+      {
+        "command": "dbexplorer.tree.invalidOff",
+        "title": "%cmd.tree.invalidOff%",
+        "icon": "$(error)"
+      },
+      {
+        "command": "dbexplorer.tree.group",
+        "title": "%cmd.tree.group%",
+        "icon": "$(organization)"
+      },
+      {
+        "command": "dbexplorer.tree.ungroup",
+        "title": "%cmd.tree.ungroup%",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "dbexplorer.useSchema",
+        "title": "%cmd.useSchema%",
+        "icon": "$(account)"
+      },
+      {
+        "command": "dbexplorer.recompile",
+        "title": "%cmd.recompile%",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "dbexplorer.dropRoutine",
+        "title": "%cmd.dropRoutine%",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "dbexplorer.recompileInvalid",
+        "title": "%cmd.recompileInvalid%",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "dbexplorer.toAnsiJoin",
+        "title": "%cmd.toAnsiJoin%"
+      },
+      {
+        "command": "dbexplorer.favorite.insert",
+        "title": "%cmd.favorite.insert%"
+      },
+      {
+        "command": "dbexplorer.sideTab.browser",
+        "title": "%cmd.sideTab.browser%"
+      },
+      {
+        "command": "dbexplorer.sideTab.connection",
+        "title": "%cmd.sideTab.connection%"
+      },
+      {
+        "command": "dbexplorer.findDuplicates",
+        "title": "%cmd.findDuplicates%"
+      },
+      {
+        "command": "dbexplorer.diagnoseDuplicates",
+        "title": "%cmd.diagnoseDuplicates%"
+      },
+      {
+        "command": "dbexplorer.actions",
+        "title": "%cmd.actions%",
+        "category": "DB Explorer"
+      },
+      {
+        "command": "dbexplorer.insertSnippet",
+        "title": "%cmd.insertSnippet%",
+        "category": "DB Explorer"
+      },
+      {
+        "command": "dbexplorer.saveSnippet",
+        "title": "%cmd.saveSnippet%",
+        "category": "DB Explorer"
+      },
+      {
+        "command": "dbexplorer.toggleReadOnly",
+        "title": "%cmd.toggleReadOnly%",
+        "category": "DB Explorer",
+        "icon": "$(lock)"
+      },
+      {
+        "command": "dbexplorer.goToObject",
+        "title": "%cmd.goToObject%",
+        "category": "DB Explorer"
+      },
+      {
+        "command": "dbexplorer.diagnostics",
+        "title": "%cmd.diagnostics%",
+        "category": "DB Explorer"
+      },
+      {
+        "command": "dbexplorer.togglePin",
+        "title": "%cmd.togglePin%",
+        "category": "DB Explorer"
+      },
+      {
+        "command": "dbexplorer.openTools",
+        "title": "%cmd.openTools%",
+        "category": "DB Explorer"
+      },
+      {
+        "command": "dbexplorer.openHelp",
+        "title": "%cmd.openHelp%",
+        "category": "DB Explorer"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "dbexplorer.addConnection",
+          "when": "view == dbexplorer.connections",
+          "group": "navigation@2"
+        },
+        {
+          "command": "dbexplorer.setActive",
+          "when": "view == dbexplorer.connections",
+          "group": "2_connection@1"
+        },
+        {
+          "command": "dbexplorer.changeSchema",
+          "when": "view == dbexplorer.connections",
+          "group": "2_connection@2"
+        },
+        {
+          "command": "dbexplorer.refresh",
+          "when": "view == dbexplorer.connections",
+          "group": "navigation@4"
+        },
+        {
+          "command": "dbexplorer.newEditor",
+          "when": "view == dbexplorer.connections",
+          "group": "navigation@3"
+        },
+        {
+          "command": "dbexplorer.importTns",
+          "when": "view == dbexplorer.connections",
+          "group": "2_connection@4"
+        },
+        {
+          "command": "dbexplorer.disconnectAll",
+          "when": "view == dbexplorer.connections",
+          "group": "2_connection@3"
+        },
+        {
+          "command": "dbexplorer.tree.filter",
+          "when": "view == dbexplorer.connections && !dbexplorer.treeFiltered",
+          "group": "navigation@1"
+        },
+        {
+          "command": "dbexplorer.tree.clearFilter",
+          "when": "view == dbexplorer.connections && dbexplorer.treeFiltered",
+          "group": "navigation@1"
+        },
+        {
+          "command": "dbexplorer.tree.filterType",
+          "when": "view == dbexplorer.connections",
+          "group": "1_view@3"
+        },
+        {
+          "command": "dbexplorer.compareSchemas",
+          "when": "view == dbexplorer.connections",
+          "group": "3_tools@1"
+        },
+        {
+          "command": "dbexplorer.tree.invalid",
+          "when": "view == dbexplorer.connections && !dbexplorer.treeInvalid",
+          "group": "1_view@2"
+        },
+        {
+          "command": "dbexplorer.tree.invalidOff",
+          "when": "view == dbexplorer.connections && dbexplorer.treeInvalid",
+          "group": "1_view@2"
+        },
+        {
+          "command": "dbexplorer.tree.group",
+          "when": "view == dbexplorer.connections && !dbexplorer.groupedSchemas",
+          "group": "1_view@1"
+        },
+        {
+          "command": "dbexplorer.tree.ungroup",
+          "when": "view == dbexplorer.connections && dbexplorer.groupedSchemas",
+          "group": "1_view@1"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "dbexplorer.connect",
+          "when": "view == dbexplorer.connections && viewItem == conn",
+          "group": "1_conn"
+        },
+        {
+          "command": "dbexplorer.setActive",
+          "when": "view == dbexplorer.connections && viewItem == conn.on",
+          "group": "1_conn@1"
+        },
+        {
+          "command": "dbexplorer.setActive",
+          "when": "view == dbexplorer.connections && viewItem == conn.on",
+          "group": "1_conn"
+        },
+        {
+          "command": "dbexplorer.disconnect",
+          "when": "view == dbexplorer.connections && viewItem =~ /^conn\\.(on|active)$/",
+          "group": "1_conn"
+        },
+        {
+          "command": "dbexplorer.changeSchema",
+          "when": "view == dbexplorer.connections && viewItem =~ /^conn\\.(on|active)$/",
+          "group": "1_conn@2"
+        },
+        {
+          "command": "dbexplorer.changeSchema",
+          "when": "view == dbexplorer.connections && viewItem =~ /^conn\\.(on|active)$/",
+          "group": "1_conn"
+        },
+        {
+          "command": "dbexplorer.newEditor",
+          "when": "view == dbexplorer.connections && viewItem =~ /^conn\\.(on|active)$/",
+          "group": "1_conn"
+        },
+        {
+          "command": "dbexplorer.editConnection",
+          "when": "view == dbexplorer.connections && viewItem =~ /^conn/",
+          "group": "2_edit"
+        },
+        {
+          "command": "dbexplorer.removeConnection",
+          "when": "view == dbexplorer.connections && viewItem =~ /^conn/",
+          "group": "2_edit"
+        },
+        {
+          "command": "dbexplorer.openDdl",
+          "when": "view == dbexplorer.connections && viewItem =~ /^obj/",
+          "group": "1_obj"
+        },
+        {
+          "command": "dbexplorer.selectData",
+          "when": "view == dbexplorer.connections && viewItem =~ /^obj\\.(TABLE|VIEW|MATERIALIZED VIEW|SYNONYM)$/",
+          "group": "1_obj"
+        },
+        {
+          "command": "dbexplorer.describeObject",
+          "when": "view == dbexplorer.connections && viewItem =~ /^obj\\.(TABLE|VIEW|MATERIALIZED VIEW|SYNONYM)$/",
+          "group": "1_obj"
+        },
+        {
+          "command": "dbexplorer.runRoutine",
+          "when": "view == dbexplorer.connections && viewItem =~ /^obj\\.(PROCEDURE|FUNCTION|PACKAGE)$/",
+          "group": "1_obj"
+        },
+        {
+          "command": "dbexplorer.copyName",
+          "when": "view == dbexplorer.connections && viewItem =~ /^obj/",
+          "group": "2_misc"
+        },
+        {
+          "command": "dbexplorer.disconnect",
+          "when": "view == dbexplorer.connections && viewItem =~ /^conn\\.(on|active)$/",
+          "group": "inline@1"
+        },
+        {
+          "command": "dbexplorer.tree.clearFilter",
+          "when": "view == dbexplorer.connections && viewItem == search.active",
+          "group": "inline"
+        },
+        {
+          "command": "dbexplorer.recompileInvalid",
+          "when": "view == dbexplorer.connections && viewItem =~ /^(cat|schema|schema\\.current|conn\\.on|conn\\.active)$/",
+          "group": "3_compile"
+        },
+        {
+          "command": "dbexplorer.useSchema",
+          "when": "view == dbexplorer.connections && viewItem == schema",
+          "group": "inline"
+        },
+        {
+          "command": "dbexplorer.useSchema",
+          "when": "view == dbexplorer.connections && viewItem == schema",
+          "group": "1_schema"
+        },
+        {
+          "submenu": "dbexplorer.moreObj",
+          "when": "view == dbexplorer.connections && viewItem =~ /^obj/",
+          "group": "3_more"
+        },
+        {
+          "command": "dbexplorer.togglePin",
+          "when": "view == dbexplorer.connections && viewItem =~ /^conn/",
+          "group": "2_edit"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "dbexplorer.executeStatement",
+          "when": "editorLangId == sql",
+          "group": "navigation@1"
+        },
+        {
+          "command": "dbexplorer.executeScript",
+          "when": "editorLangId == sql",
+          "group": "navigation@2"
+        },
+        {
+          "command": "dbexplorer.commit",
+          "when": "editorLangId == sql && dbexplorer.dirty",
+          "group": "navigation@0"
+        },
+        {
+          "command": "dbexplorer.rollback",
+          "when": "editorLangId == sql && dbexplorer.dirty",
+          "group": "navigation@0"
+        },
+        {
+          "command": "dbexplorer.explainPlan",
+          "when": "editorLangId == sql",
+          "group": "navigation@5"
+        },
+        {
+          "command": "dbexplorer.describeQuery",
+          "when": "editorLangId == sql",
+          "group": "1_more@6"
+        },
+        {
+          "command": "dbexplorer.changeSchema",
+          "when": "editorLangId == sql",
+          "group": "1_more@7"
+        },
+        {
+          "command": "dbexplorer.setActive",
+          "when": "editorLangId == sql",
+          "group": "1_more@8"
+        },
+        {
+          "command": "dbexplorer.optimize",
+          "when": "editorLangId == sql",
+          "group": "1_more@9"
+        },
+        {
+          "command": "dbexplorer.compareQueries",
+          "when": "editorLangId == sql",
+          "group": "1_more@10"
+        },
+        {
+          "command": "dbexplorer.cancel",
+          "when": "dbexplorer.running",
+          "group": "navigation@0"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "dbexplorer.executeStatement",
+          "when": "editorLangId == sql",
+          "group": "dbexplorer@1"
+        },
+        {
+          "command": "dbexplorer.executeScript",
+          "when": "editorLangId == sql",
+          "group": "dbexplorer@2"
+        },
+        {
+          "command": "dbexplorer.explainPlan",
+          "when": "editorLangId == sql",
+          "group": "dbexplorer@3"
+        },
+        {
+          "command": "dbexplorer.codeActions",
+          "when": "editorLangId == sql",
+          "group": "dbexplorer@0"
+        },
+        {
+          "submenu": "dbexplorer.moreEditor",
+          "when": "editorLangId == sql",
+          "group": "dbexplorer@5"
+        }
+      ],
+      "dbexplorer.moreObj": [
+        {
+          "command": "dbexplorer.callGraph",
+          "when": "view == dbexplorer.connections && viewItem =~ /^obj\\.(PROCEDURE|FUNCTION|PACKAGE)$/",
+          "group": "1_explore"
+        },
+        {
+          "command": "dbexplorer.erDiagram",
+          "when": "view == dbexplorer.connections && viewItem =~ /^obj\\.(TABLE|VIEW|MATERIALIZED VIEW)$/",
+          "group": "1_explore"
+        },
+        {
+          "command": "dbexplorer.usedBy",
+          "when": "view == dbexplorer.connections && viewItem =~ /^obj\\.(TABLE|VIEW|MATERIALIZED VIEW|SEQUENCE|PROCEDURE|FUNCTION|PACKAGE|TYPE|SYNONYM)$/",
+          "group": "1_explore"
+        },
+        {
+          "command": "dbexplorer.usesWhat",
+          "when": "view == dbexplorer.connections && viewItem =~ /^obj\\.(TABLE|VIEW|MATERIALIZED VIEW|PROCEDURE|FUNCTION|PACKAGE|TRIGGER|TYPE)$/",
+          "group": "1_explore"
+        },
+        {
+          "command": "dbexplorer.recompile",
+          "when": "view == dbexplorer.connections && viewItem =~ /^obj\\.(PACKAGE|PROCEDURE|FUNCTION|TRIGGER|VIEW|MATERIALIZED VIEW|TYPE|SYNONYM)$/",
+          "group": "3_compile"
+        },
+        {
+          "command": "dbexplorer.dropRoutine",
+          "when": "view == dbexplorer.connections && viewItem =~ /^obj\\.(PACKAGE|PROCEDURE|FUNCTION|TRIGGER)$/",
+          "group": "9_drop"
+        },
+        {
+          "command": "dbexplorer.findDuplicates",
+          "when": "view == dbexplorer.connections && viewItem =~ /^obj\\.(TABLE|VIEW|MATERIALIZED VIEW)$/",
+          "group": "1_explore"
+        }
+      ],
+      "dbexplorer.moreEditor": [
+        {
+          "command": "dbexplorer.describe",
+          "when": "editorLangId == sql",
+          "group": "dbexplorer@4"
+        },
+        {
+          "command": "dbexplorer.describeQuery",
+          "when": "editorLangId == sql",
+          "group": "dbexplorer@5"
+        },
+        {
+          "command": "dbexplorer.suggest",
+          "when": "editorLangId == sql",
+          "group": "dbexplorer@6"
+        },
+        {
+          "command": "dbexplorer.exportResults",
+          "when": "editorLangId == sql",
+          "group": "dbexplorer@7"
+        },
+        {
+          "command": "dbexplorer.toggleComment",
+          "when": "editorLangId == sql",
+          "group": "dbexplorer@8"
+        },
+        {
+          "command": "dbexplorer.toggleBlockComment",
+          "when": "editorLangId == sql",
+          "group": "dbexplorer@9"
+        },
+        {
+          "command": "dbexplorer.optimize",
+          "when": "editorLangId == sql",
+          "group": "dbexplorer@10"
+        },
+        {
+          "command": "dbexplorer.compareQueries",
+          "when": "editorLangId == sql",
+          "group": "dbexplorer@11"
+        },
+        {
+          "command": "dbexplorer.favorite.add",
+          "when": "editorLangId == sql",
+          "group": "dbexplorer@12"
+        },
+        {
+          "command": "dbexplorer.toAnsiJoin",
+          "when": "editorLangId == sql",
+          "group": "dbexplorer@13"
+        },
+        {
+          "command": "dbexplorer.diagnoseDuplicates",
+          "when": "editorLangId == sql",
+          "group": "dbexplorer@14"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "dbexplorer.executeStatement",
+        "key": "ctrl+alt+enter",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == standard"
+      },
+      {
+        "command": "dbexplorer.executeStatement",
+        "key": "alt+enter",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == alt"
+      },
+      {
+        "command": "dbexplorer.executeStatement",
+        "key": "f9",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == toad"
+      },
+      {
+        "command": "dbexplorer.executeStatement",
+        "key": "ctrl+enter",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == toad"
+      },
+      {
+        "command": "dbexplorer.executeScript",
+        "key": "ctrl+alt+s",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == standard"
+      },
+      {
+        "command": "dbexplorer.executeScript",
+        "key": "alt+shift+enter",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == alt"
+      },
+      {
+        "command": "dbexplorer.executeScript",
+        "key": "f5",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == toad"
+      },
+      {
+        "command": "dbexplorer.explainPlan",
+        "key": "ctrl+alt+x",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == standard"
+      },
+      {
+        "command": "dbexplorer.explainPlan",
+        "key": "alt+shift+e",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == alt"
+      },
+      {
+        "command": "dbexplorer.explainPlan",
+        "key": "ctrl+e",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == toad"
+      },
+      {
+        "command": "dbexplorer.describe",
+        "key": "ctrl+alt+d",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == standard"
+      },
+      {
+        "command": "dbexplorer.describe",
+        "key": "alt+d",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == alt"
+      },
+      {
+        "command": "dbexplorer.describe",
+        "key": "f4",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == toad"
+      },
+      {
+        "command": "dbexplorer.describeQuery",
+        "key": "ctrl+alt+t",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == standard"
+      },
+      {
+        "command": "dbexplorer.describeQuery",
+        "key": "alt+shift+d",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == alt"
+      },
+      {
+        "command": "dbexplorer.describeQuery",
+        "key": "ctrl+f9",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == toad"
+      },
+      {
+        "command": "dbexplorer.suggest",
+        "key": "ctrl+alt+space",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == standard"
+      },
+      {
+        "command": "dbexplorer.suggest",
+        "key": "alt+shift+space",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == alt"
+      },
+      {
+        "command": "dbexplorer.suggest",
+        "key": "ctrl+space",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == toad"
+      },
+      {
+        "command": "dbexplorer.newEditor",
+        "key": "ctrl+alt+n",
+        "when": "config.dbexplorer.keymap == standard"
+      },
+      {
+        "command": "dbexplorer.newEditor",
+        "key": "alt+shift+n",
+        "when": "config.dbexplorer.keymap == alt"
+      },
+      {
+        "command": "dbexplorer.newEditor",
+        "key": "ctrl+alt+n",
+        "when": "config.dbexplorer.keymap == toad"
+      },
+      {
+        "command": "dbexplorer.toggleComment",
+        "key": "ctrl+alt+c",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == standard"
+      },
+      {
+        "command": "dbexplorer.toggleComment",
+        "key": "alt+shift+c",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == alt"
+      },
+      {
+        "command": "dbexplorer.toggleComment",
+        "key": "ctrl+b",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == toad"
+      },
+      {
+        "command": "dbexplorer.optimize",
+        "key": "ctrl+alt+o",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == standard"
+      },
+      {
+        "command": "dbexplorer.optimize",
+        "key": "alt+shift+o",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == alt"
+      },
+      {
+        "command": "dbexplorer.optimize",
+        "key": "ctrl+alt+o",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == toad"
+      },
+      {
+        "command": "dbexplorer.codeActions",
+        "key": "ctrl+alt+a",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == standard"
+      },
+      {
+        "command": "dbexplorer.codeActions",
+        "key": "alt+shift+a",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == alt"
+      },
+      {
+        "command": "dbexplorer.codeActions",
+        "key": "ctrl+alt+a",
+        "when": "editorTextFocus && editorLangId == sql && config.dbexplorer.keymap == toad"
+      },
+      {
+        "command": "dbexplorer.cancel",
+        "key": "ctrl+alt+q",
+        "when": "dbexplorer.running && config.dbexplorer.keymap == standard"
+      },
+      {
+        "command": "dbexplorer.cancel",
+        "key": "alt+shift+q",
+        "when": "dbexplorer.running && config.dbexplorer.keymap == alt"
+      },
+      {
+        "command": "dbexplorer.cancel",
+        "key": "ctrl+alt+q",
+        "when": "dbexplorer.running && config.dbexplorer.keymap == toad"
+      },
+      {
+        "command": "dbexplorer.actions",
+        "key": "ctrl+alt+j",
+        "when": "editorLangId == sql"
+      },
+      {
+        "command": "dbexplorer.goToObject",
+        "key": "ctrl+alt+g"
+      }
+    ],
+    "configuration": [
+      {
+        "id": "dbexplorer.exec",
+        "title": "%cfg.group.exec%",
+        "order": 1,
+        "properties": {
+          "dbexplorer.autoCommit": {
+            "type": "boolean",
+            "default": false,
+            "description": "%cfg.autoCommit%"
+          },
+          "dbexplorer.pageSize": {
+            "type": "number",
+            "default": 500,
+            "description": "%cfg.pageSize%"
+          },
+          "dbexplorer.showAllMaxRows": {
+            "type": "number",
+            "default": 100000,
+            "minimum": 0,
+            "description": "%cfg.showAllMaxRows%"
+          },
+          "dbexplorer.queryTimeoutSeconds": {
+            "type": "number",
+            "minimum": 0,
+            "default": 600,
+            "description": "%cfg.queryTimeoutSeconds%"
+          },
+          "dbexplorer.onScriptError": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "continue",
+              "stop"
+            ],
+            "default": "ask",
+            "description": "%cfg.onScriptError%",
+            "enumDescriptions": [
+              "%cfg.onScriptError.ask%",
+              "%cfg.onScriptError.continue%",
+              "%cfg.onScriptError.stop%"
+            ]
+          },
+          "dbexplorer.clearLogOnRun": {
+            "type": "boolean",
+            "default": false,
+            "description": "%cfg.clearLogOnRun%"
+          },
+          "dbexplorer.enableDbmsOutput": {
+            "type": "boolean",
+            "default": true,
+            "description": "%cfg.enableDbmsOutput%"
+          },
+          "dbexplorer.blankLineSeparatesStatements": {
+            "type": "boolean",
+            "default": true,
+            "description": "%cfg.blankLineSeparatesStatements%"
+          },
+          "dbexplorer.rollbackOnTimeout": {
+            "type": "boolean",
+            "default": true,
+            "description": "%cfg.rollbackOnTimeout%"
+          },
+          "dbexplorer.transactionTimeoutMinutes": {
+            "type": "number",
+            "minimum": 0,
+            "default": 0,
+            "description": "%cfg.transactionTimeoutMinutes%"
+          },
+          "dbexplorer.idleTimeoutMinutes": {
+            "type": "number",
+            "minimum": 0,
+            "default": 30,
+            "description": "%cfg.idleTimeoutMinutes%"
+          },
+          "dbexplorer.notifyUncommitted": {
+            "type": "boolean",
+            "default": true,
+            "description": "%cfg.notifyUncommitted%"
+          }
+        }
+      },
+      {
+        "id": "dbexplorer.safety",
+        "title": "%cfg.group.safety%",
+        "order": 2,
+        "properties": {
+          "dbexplorer.confirmOnProduction": {
+            "type": "boolean",
+            "default": true,
+            "description": "%cfg.confirmOnProduction%"
+          },
+          "dbexplorer.previewAffectedRows": {
+            "type": "boolean",
+            "default": true,
+            "description": "%cfg.previewAffectedRows%"
+          },
+          "dbexplorer.confirmRowsThreshold": {
+            "type": "number",
+            "default": 100,
+            "minimum": 0,
+            "description": "%cfg.confirmRowsThreshold%"
+          }
+        }
+      },
+      {
+        "id": "dbexplorer.results",
+        "title": "%cfg.group.results%",
+        "order": 3,
+        "properties": {
+          "dbexplorer.dateFormat": {
+            "type": "string",
+            "default": "YYYY-MM-DD HH24:MI:SS",
+            "description": "%cfg.dateFormat%"
+          },
+          "dbexplorer.timestampFormat": {
+            "type": "string",
+            "default": "YYYY-MM-DD HH24:MI:SS.FF3",
+            "description": "%cfg.timestampFormat%"
+          },
+          "dbexplorer.csvSeparator": {
+            "type": "string",
+            "enum": [
+              ";",
+              ",",
+              "\t"
+            ],
+            "enumDescriptions": [
+              "%cfg.csv.semicolon%",
+              "%cfg.csv.comma%",
+              "%cfg.csv.tab%"
+            ],
+            "default": ";",
+            "description": "%cfg.csvSeparator%"
+          },
+          "dbexplorer.compareMaxRows": {
+            "type": "number",
+            "minimum": 100,
+            "default": 50000,
+            "description": "%cfg.compareMaxRows%"
+          }
+        }
+      },
+      {
+        "id": "dbexplorer.editor",
+        "title": "%cfg.group.editor%",
+        "order": 4,
+        "properties": {
+          "dbexplorer.keymap": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "alt",
+              "toad"
+            ],
+            "enumDescriptions": [
+              "%cfg.keymap.standard%",
+              "%cfg.keymap.alt%",
+              "%cfg.keymap.toad%"
+            ],
+            "default": "standard",
+            "description": "%cfg.keymap%"
+          },
+          "dbexplorer.snippets": {
+            "type": "array",
+            "default": [],
+            "description": "%cfg.snippets%",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string",
+                  "description": "VS Code snippet syntax"
+                }
+              },
+              "required": [
+                "name",
+                "body"
+              ]
+            }
+          },
+          "dbexplorer.prefetchMetadata": {
+            "type": "boolean",
+            "default": true,
+            "description": "%cfg.prefetchMetadata%"
+          },
+          "dbexplorer.metadataConnection": {
+            "type": "boolean",
+            "default": true,
+            "description": "%cfg.metadataConnection%"
+          },
+          "dbexplorer.colorEditors": {
+            "type": "boolean",
+            "default": true,
+            "description": "%cfg.colorEditors%"
+          },
+          "dbexplorer.showEditorBadge": {
+            "type": "boolean",
+            "default": true,
+            "description": "%cfg.showEditorBadge%"
+          },
+          "dbexplorer.connectionInWindowTitle": {
+            "type": "boolean",
+            "default": true,
+            "description": "%cfg.connectionInWindowTitle%"
+          },
+          "dbexplorer.groupBySchema": {
+            "type": "boolean",
+            "default": false,
+            "description": "%cfg.groupBySchema%"
+          },
+          "dbexplorer.maxTreeObjects": {
+            "type": "number",
+            "default": 5000,
+            "description": "%cfg.maxTreeObjects%"
+          },
+          "dbexplorer.inlineErrors": {
+            "type": "boolean",
+            "default": true,
+            "description": "%cfg.inlineErrors%"
+          },
+          "dbexplorer.liveChecks": {
+            "type": "boolean",
+            "default": true,
+            "description": "%cfg.liveChecks%"
+          }
+        }
+      },
+      {
+        "id": "dbexplorer.conn",
+        "title": "%cfg.group.conn%",
+        "order": 5,
+        "properties": {
+          "dbexplorer.tnsAdmin": {
+            "type": "string",
+            "default": "",
+            "description": "%cfg.tnsAdmin%"
+          },
+          "dbexplorer.oracleClientLibDir": {
+            "type": "string",
+            "default": "",
+            "description": "%cfg.oracleClientLibDir%"
+          }
+        }
+      }
+    ],
+    "configurationDefaults": {
+      "files.associations": {
+        "*.pks": "sql",
+        "*.pkb": "sql",
+        "*.prc": "sql",
+        "*.fnc": "sql",
+        "*.trg": "sql",
+        "*.pls": "sql",
+        "*.plsql": "sql"
+      },
+      "[sql]": {
+        "editor.quickSuggestions": {
+          "other": true,
+          "comments": false,
+          "strings": false
+        },
+        "editor.suggestOnTriggerCharacters": true,
+        "editor.wordBasedSuggestions": "off",
+        "editor.snippetSuggestions": "inline",
+        "editor.suggest.snippetsPreventQuickSuggestions": false,
+        "editor.acceptSuggestionOnEnter": "smart",
+        "editor.quickSuggestionsDelay": 10
+      }
+    },
+    "colors": [
+      {
+        "id": "dbexplorer.color.blue",
+        "description": "%color.blue%",
+        "defaults": {
+          "dark": "#3b82f6",
+          "light": "#2563eb",
+          "highContrast": "#3b82f6",
+          "highContrastLight": "#2563eb"
+        }
+      },
+      {
+        "id": "dbexplorer.color.green",
+        "description": "%color.green%",
+        "defaults": {
+          "dark": "#22c55e",
+          "light": "#16a34a",
+          "highContrast": "#22c55e",
+          "highContrastLight": "#16a34a"
+        }
+      },
+      {
+        "id": "dbexplorer.color.red",
+        "description": "%color.red%",
+        "defaults": {
+          "dark": "#ef4444",
+          "light": "#dc2626",
+          "highContrast": "#ef4444",
+          "highContrastLight": "#dc2626"
+        }
+      },
+      {
+        "id": "dbexplorer.color.orange",
+        "description": "%color.orange%",
+        "defaults": {
+          "dark": "#f97316",
+          "light": "#ea580c",
+          "highContrast": "#f97316",
+          "highContrastLight": "#ea580c"
+        }
+      },
+      {
+        "id": "dbexplorer.color.purple",
+        "description": "%color.purple%",
+        "defaults": {
+          "dark": "#a855f7",
+          "light": "#9333ea",
+          "highContrast": "#a855f7",
+          "highContrastLight": "#9333ea"
+        }
+      },
+      {
+        "id": "dbexplorer.color.teal",
+        "description": "%color.teal%",
+        "defaults": {
+          "dark": "#14b8a6",
+          "light": "#0d9488",
+          "highContrast": "#14b8a6",
+          "highContrastLight": "#0d9488"
+        }
+      },
+      {
+        "id": "dbexplorer.color.pink",
+        "description": "%color.pink%",
+        "defaults": {
+          "dark": "#ec4899",
+          "light": "#db2777",
+          "highContrast": "#ec4899",
+          "highContrastLight": "#db2777"
+        }
+      },
+      {
+        "id": "dbexplorer.color.yellow",
+        "description": "%color.yellow%",
+        "defaults": {
+          "dark": "#eab308",
+          "light": "#ca8a04",
+          "highContrast": "#eab308",
+          "highContrastLight": "#ca8a04"
+        }
+      },
+      {
+        "id": "dbexplorer.color.gray",
+        "description": "%color.gray%",
+        "defaults": {
+          "dark": "#9ca3af",
+          "light": "#6b7280",
+          "highContrast": "#9ca3af",
+          "highContrastLight": "#6b7280"
+        }
+      }
+    ],
+    "submenus": [
+      {
+        "id": "dbexplorer.moreObj",
+        "label": "%submenu.more%"
+      },
+      {
+        "id": "dbexplorer.moreEditor",
+        "label": "%submenu.moreEditor%"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package",
+    "test": "tsc -p ./ && node test/run.js",
+    "test:integration": "tsc -p ./ && node test/integration.js"
+  },
+  "dependencies": {
+    "fflate": "^0.8.3",
+    "mysql2": "^3.24.6",
+    "node-sqlite3-wasm": "^0.8.61",
+    "oracledb": "^6.6.0",
+    "pg": "^8.23.1",
+    "pg-cursor": "^2.22.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/oracledb": "^7.0.3",
+    "@types/pg": "^8.23.1",
+    "@types/pg-cursor": "^2.7.2",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.0.0",
+    "typescript": "^5.4.0"
+  },
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hug0O/db-explorer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hug0O/db-explorer/issues"
+  },
+  "homepage": "https://github.com/hug0O/db-explorer#readme"
+}

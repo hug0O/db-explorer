@@ -1,0 +1,10 @@
+# Bases de test pour `npm run test:integration` (ports locaux dédiés)
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment: { POSTGRES_PASSWORD: test, POSTGRES_DB: test }
+    ports: ["127.0.0.1:55432:5432"]
+  mysql:
+    image: mysql:8
+    environment: { MYSQL_ROOT_PASSWORD: test, MYSQL_DATABASE: test }
+    ports: ["127.0.0.1:53306:3306"]
