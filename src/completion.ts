@@ -451,18 +451,26 @@ export class SqlCompletion implements vscode.CompletionItemProvider, vscode.Hove
 
   constructor(private readonly mgr: ConnectionManager, private readonly cache: MetaCache) {
     // précharge (depuis le disque, puis la base) dès qu'une connexion devient active
-    mgr.onDidChange(() => {
-      const a = mgr.active;
-      if (a) void this.cache.get(a.profile.id, a.session.conn.currentSchema).catch(() => undefined);
-    });
+    mgr.onDidChange(() => this.preload());
+  }
+
+  /**
+   * Charge le cache depuis le disque pour la connexion active, SANS scanner la base (un scan complet d'un gros schéma est long) :
+   * le scan démarre quand on utilise vraiment l'aide à la saisie, ou à la connexion si dbexplorer.scanOnConnect est activé.
+   */
+  preload() {
+    const a = this.mgr.active;
+    if (!a) return;
+    const scan = vscode.workspace.getConfiguration('dbexplorer').get<boolean>('scanOnConnect', false);
+    void this.cache.get(a.profile.id, a.session.conn.currentSchema, scan).catch(() => undefined);
   }
 
   /** Vide le cache de la connexion active puis le recharge en arrière-plan. */
-  invalidate() {
+  invalidate(rescan = true) {
     this.routines.clear();
     const a = this.mgr.active;
     void this.cache.invalidate(a?.profile.id).then(() => {
-      if (a) void this.cache.get(a.profile.id, a.session.conn.currentSchema).catch(() => undefined);
+      if (a && rescan) void this.cache.get(a.profile.id, a.session.conn.currentSchema).catch(() => undefined);
     });
   }
 

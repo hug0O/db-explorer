@@ -342,7 +342,7 @@ class PgConn implements DbConn {
         const cons = await this.constraints(schema, name);
         const lines = [
           ...cols.map((c) => `  ${q(c.NAME)} ${c.TYPE}${c.DEF ? ' DEFAULT ' + c.DEF : ''}${c.NULLABLE === 'N' ? ' NOT NULL' : ''}`),
-          ...cons.map((c) => `  CONSTRAINT ${q(c.name)} ${c.cols}`),
+          ...cons.filter((c) => c.type !== 'FK').map((c) => `  CONSTRAINT ${q(c.name)} ${c.cols}`), // les clés étrangères sont décrites à part (script par éléments)
         ];
         const idx = await this.rows<{ d: string }>(
           `SELECT indexdef d FROM pg_indexes WHERE schemaname=$1 AND tablename=$2 AND indexname NOT IN (SELECT conname FROM pg_constraint)`,

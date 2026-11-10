@@ -1,3 +1,4 @@
+import { sectionsOf, ScriptSection } from './scriptSections';
 import { t } from './i18n';
 import { DbConn, FoundObject } from './drivers/types';
 import { fmtRow } from './runner';
@@ -9,7 +10,7 @@ export interface TabDef {
   title: string;
 }
 
-export type TabContent = { columns: string[]; rows: unknown[][]; types?: string[]; sql?: string; keys?: string[]; links?: GridLink[][]; /** Il reste des lignes non chargées. */ more?: boolean } | { text: string };
+export type TabContent = { columns: string[]; rows: unknown[][]; types?: string[]; sql?: string; keys?: string[]; links?: GridLink[][]; /** Il reste des lignes non chargées. */ more?: boolean } | { text: string; /** Script découpé en éléments (création, index, clés étrangères…). */ sections?: ScriptSection[] };
 
 /** Contexte facultatif : connexion et cache de métadonnées (indicateurs PK / FK et liens dans l'onglet Data). */
 export interface TabCtx {
@@ -45,6 +46,49 @@ export async function dataContent(conn: DbConn, sql: string, schema: string, ctx
   } finally {
     await rs.close().catch(() => undefined);
   }
+}
+
+/** Onglet Script : DDL de l'objet, puis chaque élément lié (index, clés étrangères, triggers, synonymes, droits, commentaires) dans son propre bloc. */
+export async function scriptContent(conn: DbConn, o: FoundObject): Promise<TabContent> {
+  let main = (await conn.ddl(o.type, o.schema, o.name)).trim();
+  if (conn.kind === 'mysql' && o.type === 'TABLE') main = stripMysqlInline(main);
+  if (!['TABLE', 'VIEW', 'MATERIALIZED VIEW'].includes(o.type)) return { text: main + '\n' };
+  let extras = '';
+  try {
+    extras = conn.scriptExtras ? await conn.scriptExtras(o.type, o.schema, o.name) : await genericExtras(conn, o, main);
+  } catch {
+    /* éléments liés : au mieux */
+  }
+  const sections = sectionsOf(main + '\n\n' + extras, conn.kind === 'oracle' ? 'oracle' : conn.kind === 'postgres' ? 'plain' : 'blocks');
+  if (!sections.length) return { text: main + '\n' };
+  return { text: sections.map((s) => '-- ' + s.title + '\n' + s.sql).join('\n\n') + '\n', sections };
+}
+
+/** MySQL : retire du CREATE TABLE les clés étrangères et index (décrits à part, un bloc chacun) et corrige la virgule finale. */
+export function stripMysqlInline(ddl: string): string {
+  const lines = ddl.split('\n').filter((l) => !/^\s*CONSTRAINT\s+`[^`]+`\s+FOREIGN KEY\b/i.test(l) && !/^\s*(?:UNIQUE\s+|FULLTEXT\s+|SPATIAL\s+)?KEY\s+`/i.test(l));
+  for (let i = 0; i < lines.length - 1; i++) if (/,\s*$/.test(lines[i]) && /^\)/.test(lines[i + 1])) lines[i] = lines[i].replace(/,\s*$/, '');
+  return lines.join('\n');
+}
+
+/** Autres bases : clés étrangères et index qui ne figurent pas déjà dans le DDL de l'objet. */
+async function genericExtras(conn: DbConn, o: FoundObject, main: string): Promise<string> {
+  if (o.type !== 'TABLE') return '';
+  const low = main.toLowerCase();
+  const full = conn.kind === 'sqlite' ? quoteIdent(conn, o.name) : quoteIdent(conn, o.schema) + '.' + quoteIdent(conn, o.name);
+  const parts: string[] = [];
+  // SQLite n'a pas d'ALTER TABLE … ADD CONSTRAINT : ses clés étrangères restent dans le CREATE TABLE
+  const fks = conn.kind === 'sqlite' ? [] : conn.foreignKeysOf ? await conn.foreignKeysOf(o.schema, o.name).catch(() => []) : conn.foreignKeys ? await conn.foreignKeys(o.schema).catch(() => []) : [];
+  for (const f of fks) {
+    if (f.table.toLowerCase() !== o.name.toLowerCase() || low.includes(f.name.toLowerCase())) continue;
+    parts.push(`ALTER TABLE ${full} ADD CONSTRAINT ${quoteIdent(conn, f.name)} FOREIGN KEY (${f.cols.map((c) => quoteIdent(conn, c)).join(', ')}) REFERENCES ${quoteIdent(conn, f.refSchema || o.schema)}.${quoteIdent(conn, f.refTable)} (${f.refCols.map((c) => quoteIdent(conn, c)).join(', ')});`);
+  }
+  const idx = await conn.indexes(o.schema, o.name).catch(() => []);
+  for (const i of idx) {
+    if (low.includes(i.name.toLowerCase()) || /^(primary|sqlite_autoindex)/i.test(i.name)) continue;
+    parts.push(`CREATE ${i.unique ? 'UNIQUE ' : ''}INDEX ${quoteIdent(conn, i.name)} ON ${full} (${i.cols});`);
+  }
+  return parts.join('\n');
 }
 
 export function quoteIdent(conn: DbConn, name: string): string {
@@ -132,7 +176,7 @@ export async function loadTab(conn: DbConn, o: FoundObject, id: string, ctx?: Ta
       return dataContent(conn, `SELECT * FROM ${full}`, o.schema, ctx);
     }
     case 'script':
-      return { text: (await conn.ddl(o.type, o.schema, o.name)).trim() + '\n' };
+      return scriptContent(conn, o);
   }
   if (id === 'referential' && !oracle) {
     // autres bases : clés étrangères dans les deux sens (celles de la table, et celles qui la référencent)

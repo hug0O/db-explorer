@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.36.0
+
+- **New query (Ctrl+Alt+N)** asks for the target connection: the **last used one comes first** (Enter picks it), then the others by recent use, then "New connection…". The connection is opened if needed. With a single saved connection there is no question.
+- **Switch connection at any time** from a SQL editor: **plug button** in the editor title bar, `Ctrl+Alt+K`, or the status bar. The list is also ordered by recent use and opens the connection if it is closed.
+- **Faster Schema Browser**: the tree no longer re-reads everything on every event (each statement, commit or connection switch refreshed the whole tree and relisted every expanded category). Lists (schemas, objects, columns) are read once and reused until you press **Refresh**, the connection is closed, or a structure change (CREATE / ALTER / DROP…) is executed on it.
+- **No full scan on connect**: the metadata cache for code completion is read from disk; the scan starts only when completion is actually used or after a structure change (the old behaviour is available with `dbexplorer.scanOnConnect`). The periodic re-scan is now every 6 hours instead of 30 minutes.
+- **Describe Object › Script** now shows **each element separately**, in its own block with *Copy* and *Open in editor*: table creation, each index, each foreign key, constraints, comments, triggers, synonyms, grants (views too). Oracle uses `DBMS_METADATA` dependent DDL (indexes backing a constraint are not repeated); PostgreSQL and MySQL foreign keys / indexes are generated as separate statements (SQLite keeps its foreign keys inside CREATE TABLE).
+- Tested on real PostgreSQL 17, MySQL 8 and SQLite (script blocks); the Oracle path (`GET_DEPENDENT_DDL`) is written from the documentation and not tested on a server.
+
 ## 0.35.1
 
 - **Commit / Rollback buttons fixed**: they always acted on the *active* connection, not the one of the SQL editor you were working in, so with several connections the pending changes stayed uncommitted. They now target the editor's connection, or the only connection with pending changes (the results-panel buttons have no editor), or ask which one when several are pending. Disconnecting a connection with changes commits / rolls back that very connection.

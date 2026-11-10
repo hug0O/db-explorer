@@ -114,6 +114,8 @@ export interface DbConn {
   /** Types des colonnes retournées par une requête, sans la ramener. */
   describeQuery(sql: string, binds: Record<string, unknown>): Promise<QueryColumn[]>;
 
+  /** DDL des éléments liés à une table / vue (index, clés étrangères, commentaires, triggers, droits, synonymes), séparé de celui de l'objet. */
+  scriptExtras?(type: string, schema: string, name: string): Promise<string>;
   /** Types définis par l'utilisateur (Oracle : CREATE TYPE). */
   userTypes?(schema: string): Promise<string[]>;
   /** Packages, procédures et fonctions d'un schéma. */

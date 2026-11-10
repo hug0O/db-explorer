@@ -2,7 +2,7 @@
   "name": "db-explorer-Multi-SQL",
   "displayName": "DB Explorer Multi-SQL",
   "description": "%ext.description%",
-  "version": "0.35.2",
+  "version": "0.36.0",
   "publisher": "hugo0",
   "license": "MIT",
   "engines": {
@@ -674,7 +674,7 @@
         {
           "command": "dbexplorer.setActive",
           "when": "editorLangId == sql",
-          "group": "1_more@8"
+          "group": "navigation@3"
         },
         {
           "command": "dbexplorer.optimize",
@@ -993,6 +993,11 @@
       {
         "command": "dbexplorer.goToObject",
         "key": "ctrl+alt+g"
+      },
+      {
+        "command": "dbexplorer.setActive",
+        "key": "ctrl+alt+k",
+        "when": "editorLangId == sql"
       }
     ],
     "configuration": [
@@ -1226,6 +1231,11 @@
             "type": "boolean",
             "default": true,
             "description": "%cfg.liveChecks%"
+          },
+          "dbexplorer.scanOnConnect": {
+            "type": "boolean",
+            "default": false,
+            "description": "%cfg.scanOnConnect%"
           }
         }
       },

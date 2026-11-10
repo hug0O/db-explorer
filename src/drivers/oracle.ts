@@ -1,3 +1,4 @@
+import { split } from '../splitter';
 import { t } from '../i18n';
 import oracledb from 'oracledb';
 import { Category, ColInfo, CompileIssue, DbConn, ExecResult, FoundObject, ForeignKey, Profile, QueryColumn, ResultCursor, groupForeignKeys, isBindSpec } from './types';
@@ -196,6 +197,48 @@ class OracleConn implements DbConn {
       ? await this.rows<{ N: string; T: string }>(`SELECT object_name n, object_type t FROM user_objects WHERE object_type IN ${types} ORDER BY 1`, {}, 20000)
       : await this.rows<{ N: string; T: string }>(`SELECT object_name n, object_type t FROM all_objects WHERE owner=:o AND object_type IN ${types} ORDER BY 1`, { o: schema }, 20000);
     return rows.map((r) => ({ name: r.N, type: r.T as 'PACKAGE' | 'PROCEDURE' | 'FUNCTION' }));
+  }
+
+  /** Éléments liés à la table / vue, chacun avec son propre DDL : index (hors ceux des contraintes), clés étrangères, commentaires, triggers, droits, synonymes. */
+  async scriptExtras(type: string, schema: string, name: string) {
+    await this.conn
+      .execute(`BEGIN
+        DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM,'SQLTERMINATOR',TRUE);
+        DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM,'PRETTY',TRUE);
+      END;`)
+      .catch(() => undefined);
+    const dep = async (kind: string) => {
+      try {
+        const r = await this.conn.execute<[string]>(`SELECT DBMS_METADATA.GET_DEPENDENT_DDL(:t, :n, :o) FROM dual`, { t: kind, n: name, o: schema });
+        return String(r.rows?.[0]?.[0] ?? '').trim();
+      } catch {
+        return ''; // ORA-31608 : aucun objet de ce type
+      }
+    };
+    const parts: string[] = [];
+    if (type === 'TABLE') {
+      const backing = new Set(
+        (await this.rows<{ N: string }>(`SELECT index_name n FROM all_constraints WHERE owner=:o AND table_name=:n AND index_name IS NOT NULL`, { o: schema, n: name }).catch(() => [])).map((r) => r.N)
+      );
+      const idx = await dep('INDEX');
+      if (idx) {
+        const kept = split(idx.replace(/\n[ \t]*\n+/g, '\n'), 'oracle')
+          .map((s) => s.text.trim())
+          .filter((st) => {
+            const m = /\bindex\s+(?:"[^"]+"\s*\.\s*)?"?([^"\s(]+)"?/i.exec(st);
+            return !(m && backing.has(m[1]));
+          });
+        if (kept.length) parts.push(kept.map((s) => s.replace(/;\s*$/, '') + ';').join('\n'));
+      }
+      parts.push(await dep('REF_CONSTRAINT'));
+    }
+    parts.push(await dep('COMMENT'), await dep('TRIGGER'), await dep('OBJECT_GRANT'));
+    const syn = await this.rows<{ O: string; N: string }>(`SELECT owner o, synonym_name n FROM all_synonyms WHERE table_owner=:o AND table_name=:n ORDER BY owner, synonym_name`, { o: schema, n: name }, 200).catch(() => []);
+    if (syn.length) {
+      const q = (x: string) => '"' + x.replace(/"/g, '""') + '"';
+      parts.push(syn.map((r) => `CREATE OR REPLACE ${r.O === 'PUBLIC' ? 'PUBLIC ' : ''}SYNONYM ${r.O === 'PUBLIC' ? '' : q(r.O) + '.'}${q(r.N)} FOR ${q(schema)}.${q(name)};`).join('\n'));
+    }
+    return parts.filter(Boolean).join('\n\n');
   }
 
   async userTypes(schema: string) {

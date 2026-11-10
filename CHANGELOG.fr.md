@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.36.0
+
+- **Nouvelle requête (Ctrl+Alt+N)** demande la connexion cible : **la dernière utilisée est en premier** (Entrée la valide), puis les autres par ancienneté d'usage, puis « Nouvelle connexion… ». La connexion est ouverte si besoin. Avec une seule connexion enregistrée, aucune question.
+- **Changer de connexion à tout moment** depuis un éditeur SQL : **bouton prise** dans la barre de titre de l'éditeur, `Ctrl+Alt+K`, ou la barre d'état. La liste est aussi classée par usage récent et ouvre la connexion si elle est fermée.
+- **Schema Browser plus rapide** : l'arbre ne relit plus tout à chaque événement (chaque instruction, commit ou changement de connexion actualisait tout l'arbre et relistait chaque catégorie dépliée). Les listes (schémas, objets, colonnes) sont lues une fois et réutilisées jusqu'à **Actualiser**, la fermeture de la connexion, ou l'exécution d'une modification de structure (CREATE / ALTER / DROP…) sur celle-ci.
+- **Plus de scan complet à la connexion** : le cache de métadonnées de l'aide à la saisie est lu sur disque ; le scan ne démarre que quand l'aide à la saisie est réellement utilisée ou après une modification de structure (ancien comportement via `dbexplorer.scanOnConnect`). Le re-scan périodique passe de 30 minutes à 6 heures.
+- **Describe Object › Script** montre maintenant **chaque élément séparément**, dans son propre bloc avec *Copier* et *Ouvrir dans un éditeur* : création de la table, chaque index, chaque clé étrangère, contraintes, commentaires, triggers, synonymes, droits (vues aussi). Oracle utilise le DDL dépendant de `DBMS_METADATA` (les index de contraintes ne sont pas répétés) ; PostgreSQL et MySQL : clés étrangères et index générés comme instructions séparées (SQLite garde ses clés étrangères dans le CREATE TABLE).
+- Testé sur de vraies bases PostgreSQL 17, MySQL 8 et SQLite (blocs du script) ; le chemin Oracle (`GET_DEPENDENT_DDL`) est écrit d'après la documentation et non testé sur un serveur.
+
 ## 0.35.1
 
 - **Boutons Commit / Rollback corrigés** : ils agissaient toujours sur la connexion *active*, pas sur celle de l'éditeur SQL dans lequel vous travailliez ; avec plusieurs connexions, les modifications restaient donc non validées. Ils visent maintenant la connexion de l'éditeur, ou la seule connexion ayant des modifications en attente (les boutons du panneau de résultats n'ont pas d'éditeur), ou demandent laquelle quand plusieurs sont en attente. Déconnecter une connexion avec des modifications valide / annule cette connexion précisément.

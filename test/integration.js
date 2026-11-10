@@ -99,6 +99,24 @@ const rowsOf = async (conn, sql, n = 100) => { const rs = await conn.open(sql, {
       const capped = await dataContent(conn, `SELECT * FROM ${T}`, conn.currentSchema, undefined, 300);
       assert.ok(capped.rows.length === 300 && capped.more === true);
     });
+    await test('Describe › Script : table, index et clé étrangère en blocs séparés', async () => {
+      const { scriptContent } = require(path.join(__dirname, '..', 'out', 'objectTabs.js'));
+      const P = 'dbx_it_parent', C = 'dbx_it_child';
+      for (const x of [C, P]) await conn.exec(`DROP TABLE IF EXISTS ${x}`, {}, true).catch(() => {});
+      await conn.exec(`CREATE TABLE ${P} (id INTEGER PRIMARY KEY, name VARCHAR(20))`, {}, true);
+      await conn.exec(`CREATE TABLE ${C} (id INTEGER PRIMARY KEY, parent_id INTEGER, label VARCHAR(20), CONSTRAINT fk_dbx_child FOREIGN KEY (parent_id) REFERENCES ${P} (id))`, {}, true);
+      await conn.exec(`CREATE INDEX idx_dbx_child_label ON ${C} (label)`, {}, true);
+      const r = await scriptContent(conn, { type: 'TABLE', schema: conn.currentSchema, name: C });
+      const kinds = (r.sections || []).map((s) => s.kind);
+      assert.ok(kinds.includes('table'), kinds.join(','));
+      assert.ok(kinds.includes('index'), 'index séparé : ' + kinds.join(','));
+      if (conn.kind !== 'sqlite') {
+        assert.ok(kinds.includes('fk'), 'clé étrangère séparée : ' + kinds.join(','));
+        const table = r.sections.find((s) => s.kind === 'table').sql;
+        assert.ok(!/FOREIGN KEY/i.test(table), 'la clé étrangère ne doit plus figurer dans CREATE TABLE : ' + table);
+      }
+      for (const x of [C, P]) await conn.exec(`DROP TABLE IF EXISTS ${x}`, {}, true).catch(() => {});
+    });
     if (t.profile.type !== 'sqlite') {
       await test('routines : procédure et fonction listées avec leurs paramètres', async () => {
         const pg = t.profile.type === 'postgres';

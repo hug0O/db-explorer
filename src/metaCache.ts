@@ -55,7 +55,7 @@ export interface ScanState {
 const VERSION = 4;
 /** Part minimale de noms d'objets communs pour considérer qu'une base est un duplicat d'une autre. */
 const DUP_RATIO = 0.9;
-const OBJECTS_STALE_MS = 30 * 60_000;
+const OBJECTS_STALE_MS = 6 * 3600_000;
 const COLUMNS_STALE_MS = 24 * 3600_000;
 const BATCH = 60;
 
@@ -120,15 +120,22 @@ export class MetaCache {
    * Métadonnées disponibles TOUT DE SUITE (mémoire, sinon disque) ; ne touche jamais la base.
    * Lance le scan en arrière-plan si le cache est absent ou périmé.
    */
-  async get(pid: string, schema: string): Promise<Meta> {
+  async get(pid: string, schema: string, scan = true): Promise<Meta> {
     const k = this.key(pid, schema);
     let m = this.mem.get(k);
     if (!m) {
       m = (await this.readDisk(pid, schema)) ?? emptyMeta(schema);
       this.mem.set(k, m);
     }
-    this.startScan(pid, schema);
+    if (scan) this.startScan(pid, schema);
     return m;
+  }
+
+  /** Le contenu a changé (DDL exécuté) : relu au prochain besoin, sans tout effacer (les empreintes évitent de relire les colonnes inchangées). */
+  markStale(pid: string) {
+    const pfx = pid + '|';
+    for (const [k, m] of this.mem) if (k.startsWith(pfx)) m.at = 0;
+    for (const map of [this.lazyCols, this.lazyFk, this.lazySearch] as Map<string, unknown>[]) for (const k of [...map.keys()]) if (k.startsWith(pfx)) map.delete(k);
   }
 
   peek(pid: string, schema: string): Meta | undefined {

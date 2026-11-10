@@ -176,6 +176,10 @@ ${t('Click to switch connection')}`;
   ctx.subscriptions.push(treeView, vscode.window.onDidChangeActiveTextEditor(() => updateStatus()));
   const colors = new EditorColors(mgr);
   ctx.subscriptions.push(vscode.window.registerFileDecorationProvider(colors), colors);
+  mgr.onDidChangeSchema((pid) => {
+    metaCache.markStale(pid);
+    completion.routines.clear();
+  });
   registerInlineErrors(ctx, (uri, from, to) => runner.forgetDiagnostics(uri, from, to));
   // badge dans l'éditeur : connexion de la requête en fin de première ligne, fond rouge pour la production
   const badge = vscode.window.createTextEditorDecorationType({});
@@ -250,7 +254,7 @@ ${t('Click to switch connection')}`;
     const p = profileOf(n) ?? (await pickProfile());
     if (p) {
       await mgr.connect(p.id);
-      completion.invalidate();
+      completion.preload();
     }
   });
   /** Transaction ouverte : propose Commit / Rollback avant de fermer la connexion ; false = l'utilisateur renonce. */
@@ -282,34 +286,25 @@ ${t('Click to switch connection')}`;
     const ed = vscode.window.activeTextEditor;
     if (ed && ed.document.languageId === 'sql') mgr.bind(ed.document.uri, id);
   };
+  /** Changer de connexion à tout moment : l'éditeur SQL au premier plan (et la connexion active) passent sur la connexion choisie, ouverte si besoin. */
   reg('dbexplorer.setActive', async (n?: Node) => {
-    const p = profileOf(n);
-    if (p) {
-      mgr.setActive(p.id);
-      bindEditor(p.id);
-      return;
+    let p = profileOf(n);
+    if (!p) {
+      const ed = vscode.window.activeTextEditor;
+      const cur = ed && ed.document.languageId === 'sql' ? mgr.forDocument(ed.document.uri)?.profile.id : mgr.active?.profile.id;
+      const id = await pickConnection(t('Switch connection'), cur);
+      if (!id) return;
+      if (id === 'new') return vscode.commands.executeCommand('dbexplorer.addConnection');
+      p = mgr.get(id);
     }
-    type Pick = vscode.QuickPickItem & { id?: string; add?: boolean };
-    const mk = (x: Profile): Pick => ({
-      label: `${x.id === mgr.activeProfileId ? '$(check)' : mgr.isConnected(x.id) ? '$(database)' : '$(debug-disconnect)'} ${x.name}`,
-      description: `${KIND_LABELS[x.type]} — ${describeProfile(x)}`,
-      detail: x.id === mgr.activeProfileId ? t('Active connection') : undefined,
-      id: x.id,
-    });
-    const all = mgr.list();
-    const connected = all.filter((x) => mgr.isConnected(x.id));
-    const others = all.filter((x) => !mgr.isConnected(x.id));
-    const items: Pick[] = [];
-    if (connected.length) items.push({ label: t('Connected'), kind: vscode.QuickPickItemKind.Separator }, ...connected.map(mk));
-    if (others.length) items.push({ label: t('Saved connections'), kind: vscode.QuickPickItemKind.Separator }, ...others.map(mk));
-    items.push({ label: '', kind: vscode.QuickPickItemKind.Separator }, { label: '$(add) ' + t('New connection…'), add: true });
-    const pick = await vscode.window.showQuickPick(items, { placeHolder: t('Switch active connection'), matchOnDescription: true });
-    if (!pick) return;
-    if (pick.add) return vscode.commands.executeCommand('dbexplorer.addConnection');
-    if (pick.id) {
-      await mgr.connect(pick.id);
-      bindEditor(pick.id);
+    if (!p) return;
+    if (!mgr.isConnected(p.id)) {
+      await mgr.connect(p.id);
+      if (!mgr.isConnected(p.id)) return;
+      completion.preload();
     }
+    mgr.setActive(p.id);
+    bindEditor(p.id);
   });
   reg('dbexplorer.refresh', () => {
     completion.invalidate();
@@ -323,7 +318,7 @@ ${t('Click to switch connection')}`;
     const pick = await vscode.window.showQuickPick(await s.conn.schemas(), { placeHolder: t('Schema to browse') });
     if (!pick) return;
     await s.conn.useSchema(pick);
-    completion.invalidate();
+    completion.preload();
     mgr.changed();
   });
 
@@ -333,26 +328,57 @@ ${t('Click to switch connection')}`;
   reg('dbexplorer.sideTab.connection', () => vscode.commands.executeCommand('setContext', 'dbexplorer.sideTab', 'connection'));
 
   // --------------------------------------------------------------- éditeur
+  /**
+   * Choix d'une connexion : la dernière utilisée en premier (Entrée la valide), puis les autres par ancienneté d'usage ;
+   * « Nouvelle connexion… » en dernier. Renvoie l'identifiant, 'new', ou undefined si l'utilisateur renonce.
+   */
+  const pickConnection = async (placeholder: string, currentId?: string): Promise<string | undefined> => {
+    const all = mgr.ordered();
+    const last = mgr.lastUsedId();
+    type Pick = vscode.QuickPickItem & { id: string };
+    const items: Pick[] = all.map((p) => {
+      const on = mgr.isConnected(p.id);
+      const tags = [p.id === last ? t('last used') : '', p.id === currentId ? t('this editor') : '', on ? t('connected') : '', envLabel(p), p.readOnly ? t('read-only') : ''].filter(Boolean);
+      return {
+        label: `${on ? '$(plug)' : '$(database)'} ${p.name}`,
+        description: `${KIND_LABELS[p.type]} — ${describeProfile(p)}`,
+        detail: tags.length ? tags.join(' · ') : undefined,
+        id: p.id,
+      };
+    });
+    items.push({ label: '$(add) ' + t('New connection…'), id: 'new' });
+    const pick = await vscode.window.showQuickPick(items, { placeHolder: placeholder, matchOnDescription: true, matchOnDetail: true });
+    return pick?.id;
+  };
+
   reg('dbexplorer.newEditor', async (n?: Node) => {
-    let target = profileOf(n) && mgr.isConnected(profileOf(n)!.id) ? { profile: profileOf(n)! } : mgr.active;
-    const open = mgr.statuses();
-    if (!profileOf(n) && open.length > 1) {
-      const pick = await vscode.window.showQuickPick(
-        open.map((s) => ({ label: s.name, description: s.active ? t('active') : undefined, id: s.id })),
-        { placeHolder: t('Connection for the new query') }
-      );
-      if (!pick) return;
-      const p = mgr.get(pick.id);
-      if (p) target = { profile: p };
+    let profile = profileOf(n);
+    if (!profile) {
+      const all = mgr.ordered();
+      if (!all.length) return vscode.commands.executeCommand('dbexplorer.addConnection');
+      if (all.length === 1) profile = all[0];
+      else {
+        const id = await pickConnection(t('Connection for the new query'));
+        if (!id) return;
+        if (id === 'new') return vscode.commands.executeCommand('dbexplorer.addConnection');
+        profile = mgr.get(id);
+      }
     }
-    const base = (target?.profile.name ?? 'SQL').replace(/[^\w.-]+/g, '_');
+    if (!profile) return;
+    if (!mgr.isConnected(profile.id)) {
+      await mgr.connect(profile.id);
+      if (!mgr.isConnected(profile.id)) return;
+      completion.preload();
+    }
+    const base = profile.name.replace(/[^\w.-]+/g, '_');
     let i = 1;
     let uri: vscode.Uri;
     do uri = vscode.Uri.parse(`untitled:${base}-${i++}.sql`);
     while (vscode.workspace.textDocuments.some((d) => d.uri.toString() === uri.toString()));
     let doc = await vscode.workspace.openTextDocument(uri);
     if (doc.languageId !== 'sql') doc = await vscode.languages.setTextDocumentLanguage(doc, 'sql');
-    if (target) mgr.bind(doc.uri, target.profile.id);
+    mgr.bind(doc.uri, profile.id);
+    mgr.setActive(profile.id);
     await vscode.window.showTextDocument(doc);
   });
   reg('dbexplorer.executeStatement', () => {
@@ -574,6 +600,13 @@ ${t('Click to switch connection')}`;
     await vscode.commands.executeCommand(pick.describe || !tableLike ? 'dbexplorer.describeName' : 'dbexplorer.selectName', pick.it.name, uri);
   });
 
+  /** Ouvre un texte SQL dans un nouvel éditeur rattaché à une connexion (Describe › Script). */
+  reg('dbexplorer.openSqlText', async (sql: string, pid?: string) => {
+    const doc = await vscode.workspace.openTextDocument({ language: 'sql', content: sql + '\n' });
+    await vscode.window.showTextDocument(doc, { preview: false });
+    if (pid && mgr.get(pid)) mgr.bind(doc.uri, pid);
+  });
+
   // ---------------------------------------------------------------- informations de diagnostic
   reg('dbexplorer.diagnostics', async () => {
     const ext = vscode.extensions.getExtension('dbexplorer.dbexplorer') ?? vscode.extensions.all.find((e) => e.id.toLowerCase().includes('dbexplorer'));
@@ -657,7 +690,7 @@ ${t('Click to switch connection')}`;
     if (!mgr.isConnected(h.connId)) {
       await mgr.connect(h.connId);
       if (!mgr.isConnected(h.connId)) return false;
-      completion.invalidate();
+      completion.preload();
     }
     mgr.bind(doc.uri, h.connId);
     mgr.setActive(h.connId);
@@ -788,7 +821,7 @@ ${t('Click to switch connection')}`;
     if (!s) return;
     mgr.setActive(n.profile.id);
     await s.conn.useSchema(n.name);
-    completion.invalidate();
+    completion.preload();
     mgr.changed();
   });
 
@@ -855,7 +888,7 @@ ${t('Click to switch connection')}`;
     } catch (e) {
       vscode.window.showErrorMessage(t('Could not drop {0}: {1}', full, (e as Error).message));
     }
-    completion.invalidate();
+    completion.invalidate(false);
     mgr.changed();
   });
   reg('dbexplorer.recompileInvalid', async (n?: Node) => {

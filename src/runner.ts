@@ -503,6 +503,7 @@ export class Runner {
       } else {
         const r = await this.raceHard(conn.exec(sql, binds, session.autoCommit));
         const ms = Date.now() - started;
+        if (/^\s*(?:create|drop|alter|rename|truncate|comment)\b/i.test(sql)) this.mgr.schemaChanged(pid);
         this.stmtRows = r.rowsAffected;
         if (r.outBinds) await this.showOutBinds(r.outBinds, pid, started);
         const kind = /^(insert|update|delete|merge|replace)\b/i.exec(sql)?.[1]?.toUpperCase();

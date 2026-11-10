@@ -106,6 +106,40 @@ const test = async (name, fn) => {
     assert.deepStrictEqual([d.types, d.cursors, d.vars], [['t_tab'], ['c_emp'], ['v_n', 'v_name', 'v_t']]);
   });
 
+  console.log('scriptSections');
+  const { sectionsOf, classify } = out('scriptSections.js');
+  const oraDdl = `CREATE TABLE "S"."T" ("ID" NUMBER NOT NULL ENABLE, CONSTRAINT "PK_T" PRIMARY KEY ("ID") USING INDEX ENABLE);
+
+CREATE INDEX "S"."IDX_T_NAME" ON "S"."T" ("NAME");
+
+ALTER TABLE "S"."T" ADD CONSTRAINT "FK_T_P" FOREIGN KEY ("PID") REFERENCES "S"."P" ("ID") ENABLE;
+
+COMMENT ON TABLE "S"."T" IS 'x';
+COMMENT ON COLUMN "S"."T"."ID" IS 'y';
+
+CREATE OR REPLACE TRIGGER "S"."TRG_T" BEFORE INSERT ON "S"."T" FOR EACH ROW
+BEGIN
+  :NEW.ID := 1;
+END;
+/
+
+GRANT SELECT ON "S"."T" TO "BOB";
+GRANT INSERT ON "S"."T" TO "BOB";
+
+CREATE OR REPLACE PUBLIC SYNONYM "T" FOR "S"."T";`;
+  await test('script Oracle découpé : table, index, clé étrangère, commentaires, trigger, droits, synonyme', () => {
+    const secs = sectionsOf(oraDdl, 'oracle');
+    assert.deepStrictEqual(secs.map((x) => x.kind), ['table', 'index', 'fk', 'comments', 'trigger', 'grants', 'synonym']);
+    assert.ok(secs[3].sql.includes('COMMENT ON COLUMN'), 'commentaires regroupés');
+    assert.ok(secs[5].sql.includes('GRANT INSERT'), 'droits regroupés');
+    assert.ok(/Foreign key.*FK_T_P/.test(secs[2].title) && /IDX_T_NAME/.test(secs[1].title), secs.map((x) => x.title).join(' | '));
+  });
+  await test('classify : contrainte, vue, séquence', () => {
+    assert.strictEqual(classify('ALTER TABLE t ADD CONSTRAINT uq UNIQUE (a)').kind, 'constraint');
+    assert.strictEqual(classify('CREATE OR REPLACE VIEW v AS SELECT 1').kind, 'view');
+    assert.strictEqual(classify('CREATE SEQUENCE s').kind, 'sequence');
+  });
+
   console.log(`\n${passed} réussi(s), ${failed} échec(s)`);
   process.exit(failed ? 1 : 0);
 })();

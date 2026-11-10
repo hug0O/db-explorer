@@ -136,6 +136,7 @@ export class ConnectionManager {
   }
 
   bind(uri: vscode.Uri, pid: string) {
+    this.touchMru(pid);
     if (this.bindings.get(uri.toString()) === pid) return;
     this.bindings.set(uri.toString(), pid);
     this.emitter.fire();
@@ -261,6 +262,35 @@ export class ConnectionManager {
     }
   }
 
+  private readonly schemaEmitter = new vscode.EventEmitter<string>();
+  /** Une instruction DDL a été exécutée sur cette connexion : le contenu des listes d'objets est à relire. */
+  readonly onDidChangeSchema = this.schemaEmitter.event;
+  schemaChanged(pid: string) {
+    this.schemaEmitter.fire(pid);
+  }
+
+  private mruIds(): string[] {
+    return this.ctx.globalState.get<string[]>('dbexplorer.mru', []);
+  }
+  /** Mémorise cette connexion comme la dernière utilisée. */
+  touchMru(id: string) {
+    const cur = this.mruIds();
+    if (cur[0] === id) return;
+    void this.ctx.globalState.update('dbexplorer.mru', [id, ...cur.filter((x) => x !== id)].slice(0, 50));
+  }
+  /** Connexions de la plus récemment utilisée à la plus ancienne, puis les jamais utilisées (épinglées d'abord). */
+  ordered(): Profile[] {
+    const mru = this.mruIds();
+    const rank = (p: Profile) => {
+      const i = mru.indexOf(p.id);
+      return i < 0 ? 1e6 : i;
+    };
+    return [...this.profiles].sort((a, b) => rank(a) - rank(b) || Number(!!b.pinned) - Number(!!a.pinned) || a.name.localeCompare(b.name));
+  }
+  lastUsedId(): string | undefined {
+    return this.mruIds().find((id) => this.profiles.some((p) => p.id === id));
+  }
+
   list(): Profile[] {
     return [...this.profiles].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
   }
@@ -323,6 +353,7 @@ export class ConnectionManager {
     const existing = this.sessions.get(id);
     if (existing) {
       this.activeId = id;
+      this.touchMru(id);
       this.emitter.fire();
       return existing;
     }
@@ -360,6 +391,7 @@ export class ConnectionManager {
         this.passwords.set(id, password);
         this.sessions.set(id, session);
         this.activeId = id;
+        this.touchMru(id);
         void this.recordTest(id, true);
         return session;
       } catch (e) {

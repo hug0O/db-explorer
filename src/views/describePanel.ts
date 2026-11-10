@@ -24,7 +24,7 @@ export class DescribePanel {
     panel.onDidDispose(() => DescribePanel.panels.delete(key));
     panel.webview.html = html();
     const ctx = { pid: profileId, cache: DescribePanel.meta };
-    panel.webview.onDidReceiveMessage(async (m: { cmd: 'ready' } | { cmd: 'loadAll'; sql: string } | { cmd: 'tab'; id: string } | { cmd: 'open'; name: string } | { cmd: 'follow'; links: GridLink[]; vals: unknown[]; sql?: string; choose?: boolean }) => {
+    panel.webview.onDidReceiveMessage(async (m: { cmd: 'ready' } | { cmd: 'openSql'; sql: string } | { cmd: 'loadAll'; sql: string } | { cmd: 'tab'; id: string } | { cmd: 'open'; name: string } | { cmd: 'follow'; links: GridLink[]; vals: unknown[]; sql?: string; choose?: boolean }) => {
       if (m.cmd === 'ready') {
         const tabs = tabsFor(conn, o);
         void panel.webview.postMessage({ type: 'init', title: `${o.schema}.${o.name}`, objType: o.type, tabs });
@@ -53,6 +53,8 @@ export class DescribePanel {
         } catch (e) {
           void panel.webview.postMessage({ type: 'follow', error: (e as Error).message });
         }
+      } else if (m.cmd === 'openSql') {
+        void vscode.commands.executeCommand('dbexplorer.openSqlText', m.sql, profileId);
       } else if (m.cmd === 'loadAll') {
         // « Tout charger » : toutes les lignes de la requête affichée (plafond : dbexplorer.showAllMaxRows)
         const cap = vscode.workspace.getConfiguration('dbexplorer').get<number>('showAllMaxRows', 100000);
@@ -110,6 +112,7 @@ td.c-n{background:color-mix(in srgb,var(--tn) 7%,transparent)}td.c-t{background:
 th .ki{margin-right:3px;font-size:10px}
 td.lk:hover,td.rel:hover{text-decoration:underline dotted;cursor:alias}
 td.rel{color:var(--vscode-textLink-foreground);cursor:pointer}
+.sec{margin:10px 0;border:1px solid var(--vscode-panel-border);border-radius:4px}.sh{display:flex;gap:6px;align-items:center;padding:4px 8px;background:var(--vscode-editorGroupHeader-tabsBackground)}.sh b{flex:1}.sh .kd{opacity:.5;font-size:10px;text-transform:uppercase}.sec pre{padding:6px 10px;overflow:auto}
 #crumbs{margin:0 -12px}#legend{margin:0 -12px}
 </style></head><body>
 <div id="head"><span id="title">…</span><span id="type"></span><div id="info" class="info"></div></div>
@@ -120,7 +123,7 @@ td.rel{color:var(--vscode-textLink-foreground);cursor:pointer}
 <div id="body"></div>
 <script nonce="${nonce}">
 const vs=acquireVsCodeApi();const $=id=>document.getElementById(id);
-const T=${JSON.stringify({ back: t('Back'), pk: t('Primary key'), fk: t('Foreign key'), follow: t('Ctrl+click on a key: follow the link (Alt+Ctrl+click: choose, Shift+Ctrl+click: new editor)').replace(/, Shift\+Ctrl\+click: new editor/, ''), kinds: { n: t('Number'), t: t('Text'), d: t('Date / time'), b: t('Boolean'), l: t('Binary / LOB'), o: t('Other') }, typesLbl: t('Column types'), parentTip: t('parent row'), childTip: t('child rows'), openRel: t('Click to open this table'), loading: t('Loading…'), nodata: t('No data.'), norows: t('No rows.'), row0: t('0 rows'), rows: t('{0} row(s)'), firstN: t(' (first {0})'), loadAll: t('Load all rows'), loadAllTip: t('Load every row of the table (up to the limit of dbexplorer.showAllMaxRows)'), loadingAll: t('Loading all rows…') })};
+const T=${JSON.stringify({ back: t('Back'), pk: t('Primary key'), fk: t('Foreign key'), follow: t('Ctrl+click on a key: follow the link (Alt+Ctrl+click: choose, Shift+Ctrl+click: new editor)').replace(/, Shift\+Ctrl\+click: new editor/, ''), kinds: { n: t('Number'), t: t('Text'), d: t('Date / time'), b: t('Boolean'), l: t('Binary / LOB'), o: t('Other') }, typesLbl: t('Column types'), parentTip: t('parent row'), childTip: t('child rows'), openRel: t('Click to open this table'), loading: t('Loading…'), nodata: t('No data.'), norows: t('No rows.'), row0: t('0 rows'), rows: t('{0} row(s)'), copy: t('Copy'), openEd: t('Open in editor'), elements: t('element(s)'), firstN: t(' (first {0})'), loadAll: t('Load all rows'), loadAllTip: t('Load every row of the table (up to the limit of dbexplorer.showAllMaxRows)'), loadingAll: t('Loading all rows…') })};
 const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 let cache={},cur=null,sortCol=-1,asc=true,filter='',dtrail=[];
 function kind(ty){ty=String(ty||'').toLowerCase();
@@ -151,6 +154,11 @@ function render(){
   const c=cache[cur];if(!c)return;
   if(c.error){$('body').innerHTML='<div class="err">'+esc(c.error)+'</div>';$('count').textContent='';return;}
   const ct=c.content;
+  if(ct.sections&&ct.sections.length){
+    $('body').innerHTML=ct.sections.map((s,i)=>'<div class="sec"><div class="sh"><b>'+esc(s.title)+'</b><span class="kd">'+esc(s.kind)+'</span><button data-c="'+i+'">'+T.copy+'</button><button data-o="'+i+'">'+T.openEd+'</button></div><pre>'+esc(s.sql)+'</pre></div>').join('');
+    $('body').querySelectorAll('button[data-c]').forEach(b=>b.onclick=()=>navigator.clipboard.writeText(ct.sections[+b.dataset.c].sql));
+    $('body').querySelectorAll('button[data-o]').forEach(b=>b.onclick=()=>vs.postMessage({cmd:'openSql',sql:ct.sections[+b.dataset.o].sql}));
+    $('count').textContent=ct.sections.length+' '+T.elements;return;}
   if(ct.text!==undefined){$('body').innerHTML='<pre>'+esc(ct.text)+'</pre>';$('count').textContent='';return;}
   if(!ct.columns.length){$('body').innerHTML='<div class="muted">'+T.nodata+'</div>';$('count').textContent='';return;}
   let rows=ct.rows.map(r=>r);

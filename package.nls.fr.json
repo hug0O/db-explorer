@@ -149,5 +149,6 @@
   "cfg.group.editor": "DB Explorer : Éditeur et navigateur",
   "cfg.group.conn": "DB Explorer : Client Oracle",
   "cfg.inlineErrors": "Afficher les erreurs et avertissements dans l’éditeur SQL : ligne teintée et message grisé en fin de ligne.",
-  "cfg.liveChecks": "Contrôles instantanés pendant la frappe (sans base de données) : parenthèses non équilibrées, UPDATE / DELETE sans WHERE."
+  "cfg.liveChecks": "Contrôles instantanés pendant la frappe (sans base de données) : parenthèses non équilibrées, UPDATE / DELETE sans WHERE.",
+  "cfg.scanOnConnect": "Scanner tout le schéma (objets et colonnes, pour l’aide à la saisie) dès la connexion. Désactivé par défaut : le cache est lu sur disque et le scan ne démarre que quand vous utilisez l’aide à la saisie ou après une modification de structure (CREATE / ALTER / DROP)."
 }

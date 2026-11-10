@@ -149,5 +149,6 @@
   "cfg.group.editor": "DB Explorer: Editor and browser",
   "cfg.group.conn": "DB Explorer: Oracle client",
   "cfg.inlineErrors": "Show errors and warnings in the SQL editor: tinted line and greyed message at the end of the line.",
-  "cfg.liveChecks": "Instant checks while typing (no database needed): unbalanced parentheses, UPDATE / DELETE without WHERE."
+  "cfg.liveChecks": "Instant checks while typing (no database needed): unbalanced parentheses, UPDATE / DELETE without WHERE.",
+  "cfg.scanOnConnect": "Scan the whole schema (objects and columns, for code completion) as soon as you connect. Off by default: the cache is read from disk and the scan only starts when you actually use completion or after a structure change (CREATE / ALTER / DROP)."
 }

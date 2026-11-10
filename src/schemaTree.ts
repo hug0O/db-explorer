@@ -60,7 +60,7 @@ export class SchemaTree implements vscode.TreeDataProvider<Node> {
 
   private applied() {
     void vscode.commands.executeCommand('setContext', 'dbexplorer.treeFiltered', this.active);
-    this.refresh();
+    this.emitter.fire(undefined); // le filtre n'invalide pas les listes déjà lues
   }
 
   /** Types d'objets qui existent réellement dans les connexions ouvertes (index en priorité, sinon test d'existence dans la base). */
@@ -98,13 +98,41 @@ export class SchemaTree implements vscode.TreeDataProvider<Node> {
     return [this.filter, this.types.size ? '[' + [...this.types].join(', ') + ']' : '', this.invalidOnly ? '⚠ ' + t('invalid') : ''].filter(Boolean).join(' ');
   }
 
+  private detCache = new Map<string, Promise<Node[]>>();
+  private connected = new Set<string>();
+
   constructor(private readonly mgr: ConnectionManager) {
-    mgr.onDidChange(() => this.refresh());
+    mgr.onDidChange(() => this.soft());
+    mgr.onDidChangeSchema((pid) => this.invalidate(pid));
   }
 
+  /**
+   * Changement d'état (commit, connexion active, instruction exécutée…) : l'arbre est redessiné mais les listes déjà lues
+   * (schémas, objets, colonnes) sont réutilisées ; seules les connexions fermées sont oubliées.
+   */
+  private soft() {
+    const now = new Set(this.mgr.list().filter((p) => this.mgr.isConnected(p.id)).map((p) => p.id));
+    for (const id of this.connected) if (!now.has(id)) this.dropCache(id);
+    this.connected = now;
+    this.emitter.fire(undefined);
+  }
+
+  private dropCache(pid: string) {
+    for (const m of [this.listCache, this.detCache] as Map<string, unknown>[]) for (const k of [...m.keys()]) if (k.startsWith(pid + '|')) m.delete(k);
+    this.schemaCache.delete(pid);
+  }
+
+  /** Le contenu de cette connexion a changé (DDL) : ses listes sont relues à la prochaine ouverture. */
+  invalidate(pid: string) {
+    this.dropCache(pid);
+    this.emitter.fire(undefined);
+  }
+
+  /** Actualisation demandée : tout est relu. */
   refresh() {
     this.listCache.clear();
     this.schemaCache.clear();
+    this.detCache.clear();
     this.emitter.fire(undefined);
   }
 
@@ -283,11 +311,32 @@ export class SchemaTree implements vscode.TreeDataProvider<Node> {
     const conn = this.mgr.session(n.profile.id)!.conn;
     const schema = n.schema ?? conn.currentSchema;
     const max = vscode.workspace.getConfiguration('dbexplorer').get<number>('maxTreeObjects', 5000);
-    const list = n.hits ?? (await conn.listObjects(n.type, schema, max));
+    let list = n.hits;
+    if (!list) {
+      const key = n.profile.id + '|' + schema + '|' + n.type;
+      let p = this.listCache.get(key);
+      if (!p) {
+        p = conn.listObjects(n.type, schema, max);
+        this.listCache.set(key, p);
+        p.catch(() => this.listCache.delete(key));
+      }
+      list = await p;
+    }
     return list.map((r) => ({ kind: 'obj', profile: n.profile, type: n.type, owner: schema, name: r.name, invalid: r.invalid }));
   }
 
-  private async details(n: Extract<Node, { kind: 'folder' }>): Promise<Node[]> {
+  private details(n: Extract<Node, { kind: 'folder' }>): Promise<Node[]> {
+    const key = [n.profile.id, n.owner, n.table, n.what].join('|');
+    let p = this.detCache.get(key);
+    if (!p) {
+      p = this.readDetails(n);
+      this.detCache.set(key, p);
+      p.catch(() => this.detCache.delete(key));
+    }
+    return p;
+  }
+
+  private async readDetails(n: Extract<Node, { kind: 'folder' }>): Promise<Node[]> {
     const conn = this.mgr.session(n.profile.id)!.conn;
     if (n.what === 'columns') {
       const cols = await conn.columns(n.owner, n.table);
