@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.37.0
+
+- **Ctrl+Alt+D sur un nom de colonne dans l'éditeur** (« col » ou « alias.col ») : affiche son type, « PK » et son commentaire, d'après les tables de la requête (avec un bouton pour décrire la table). Sur un nom de table ou d'alias, ça ouvre toujours Describe comme avant.
+- **Clic droit dans la grille de résultats** : sur un en-tête, « Filtrer cette colonne… », « valeurs vides / renseignées », épingler ; sur une cellule, « Garder seulement : col = valeur » et « Exclure : col <> valeur ». Le menu rappelle le type de la colonne.
+- **Retour à l'état sans filtre** : un bouton « Retirer les filtres » apparaît dans la barre dès qu'un filtre est actif (et dans les menus clic droit), et réaffiche le résultat complet. Avant, il fallait rouvrir le panneau Filtre pour le retrouver.
+
 ## 0.36.2
 
 - **Corrigé sur Oracle : le Ctrl+clic sur une clé dans la grille de résultats (ligne parente / lignes enfants, indicateurs 🔗)** ne marchait pas toujours depuis la 0.36.0. Sans le scan à la connexion, colonnes et clés étrangères sont lues à la demande via une connexion de métadonnées ouverte tardivement, et l'attente de 1,2 s de la première requête ne suffisait souvent pas. Maintenant : la connexion de métadonnées est ouverte en arrière-plan juste après la connexion (sans scan), la grille s'affiche tout de suite et les liens apparaissent dès qu'ils sont prêts (jusqu'à 15 s), et Describe › Data attend jusqu'à 10 s. Écrit pour Oracle d'après le chemin de code ; je n'ai pas pu le tester sur un serveur Oracle, mais le cas d'un dictionnaire lent est couvert par un test avec un délai simulé de 1,8 s.

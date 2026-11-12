@@ -6,8 +6,8 @@ import { ConnectionManager, Profile } from './connections';
 import { SchemaTree, Node } from './schemaTree';
 import { ResultsPanel } from './resultsPanel';
 import { Runner } from './runner';
-import { SqlCompletion } from './completion';
-import { MetaCache, within, TIMEOUT } from './metaCache';
+import { SqlCompletion, parseRefList } from './completion';
+import { MetaCache, within, TIMEOUT, ColMeta } from './metaCache';
 import { KIND_LABELS, describeProfile } from './drivers';
 import { SetupView } from './views/setupView';
 import { HelpView } from './views/helpView';
@@ -442,11 +442,45 @@ ${t('Click to switch connection')}`;
       vscode.window.showErrorMessage(t('Source unavailable: {0}', (err as Error).message));
     }
   };
+  /** Ctrl+Alt+D sur une colonne : type, clé primaire et commentaire, d'après les tables de la requête. Renvoie false si ce n'est pas une colonne. */
+  const showColumnType = async (e: vscode.TextEditor, word: string): Promise<boolean> => {
+    const act = mgr.forDocument(e.document.uri) ?? mgr.active;
+    if (!act) return false;
+    const conn = act.session.conn;
+    const stmt = statementAt(split(e.document.getText(), dialectOf(conn.kind)), e.document.offsetAt(e.selection.active));
+    if (!stmt) return false;
+    const refs = parseRefList(stmt.text, Math.max(0, e.document.offsetAt(e.selection.active) - stmt.start)).filter((r) => !r.virtual);
+    if (!refs.length) return false;
+    const parts = word.replace(/"/g, '').split('.');
+    const col = parts[parts.length - 1].toLowerCase();
+    const qual = parts.length > 1 ? parts[parts.length - 2].toLowerCase() : '';
+    const base = (n: string) => n.split('.').pop()!.toLowerCase();
+    // un nom de table ou d'alias seul reste un « Describe » de table
+    if (!qual && refs.some((r) => r.alias.toLowerCase() === col || base(r.table) === col)) return false;
+    const cands = qual ? refs.filter((r) => r.alias.toLowerCase() === qual || base(r.table) === qual || r.table.toLowerCase() === qual) : refs;
+    if (!cands.length) return false;
+    const hits: { r: (typeof refs)[number]; c: ColMeta }[] = [];
+    for (const r of cands) {
+      const [o, tb] = r.table.includes('.') ? (r.table.split('.') as [string, string]) : [conn.currentSchema, r.table];
+      const cols = await within(metaCache.columns(act.profile.id, o.replace(/"/g, ''), tb.replace(/"/g, '')).catch(() => [] as ColMeta[]), 3000);
+      if (cols === TIMEOUT) continue;
+      const c = cols.find((x) => x.name.toLowerCase() === col);
+      if (c) hits.push({ r, c });
+    }
+    if (!hits.length) return false;
+    const msg = hits.map(({ r, c }) => `${r.alias !== r.table ? r.alias + '.' : base(r.table) + '.'}${c.name} : ${c.type}${c.pk ? ' · PK' : ''}${c.comment ? ' — ' + c.comment : ''}`).join('\n');
+    const open = t('Describe {0}', hits[0].r.table);
+    const pick = await vscode.window.showInformationMessage(msg, open);
+    if (pick === open) await openObject(hits[0].r.table, e.document.uri);
+    return true;
+  };
   reg('dbexplorer.describe', async () => {
     const e = sqlEditor();
     if (!e) return;
     const range = e.document.getWordRangeAtPosition(e.selection.active, /"?[\w$#]+"?(\."?[\w$#]+"?)*/);
     const word = e.selection.isEmpty ? (range ? e.document.getText(range) : '') : e.document.getText(e.selection).trim();
+    // un nom de colonne de la requête (« alias.col » ou « col ») : on affiche son type plutôt que d'ouvrir un objet
+    if (word && (await showColumnType(e, word))) return;
     const input = word || (await vscode.window.showInputBox({ prompt: t('Object to open (table, view, package, function, trigger…)') })) || '';
     if (input) await openObject(input, e.document.uri);
   });

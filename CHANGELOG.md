@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.37.0
+
+- **Ctrl+Alt+D on a column name in the editor** (`col` or `alias.col`): shows its type, "PK" and comment, from the tables of the query (with a button to describe the table). On a table or alias name it still opens Describe as before.
+- **Right-click in the results grid**: on a header, "Filter this column…", "empty / non-empty values", pin; on a cell, "Keep only: col = value" and "Exclude: col <> value". The menu also shows the column type.
+- **Back to the unfiltered result**: a "Remove the filters" button now shows in the toolbar as soon as a filter is active (and in the right-click menus), and restores the whole result. Previously you had to reopen the Filter panel to find it.
+
 ## 0.36.2
 
 - **Fixed on Oracle: Ctrl+click on a key in the results grid (parent row / child rows, 🔗 indicators)** did not always work since 0.36.0. Without the connect-time scan, columns and foreign keys are read on demand through a metadata connection that was opened lazily, and the 1.2 s wait of the first query was often not enough. Now: the metadata connection is opened in the background right after connecting (no scan), the grid is shown immediately and the links appear as soon as they are ready (up to 15 s), and Describe › Data waits up to 10 s. Written for Oracle from the code path; I could not test it on an Oracle server, but the slow-database case is covered by a test with a simulated 1.8 s dictionary.

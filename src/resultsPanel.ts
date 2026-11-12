@@ -276,6 +276,9 @@ button.tb.danger{color:var(--vscode-errorForeground)}
 #fbtn:before{content:'⛃'}#colbtn:before{content:'▥'}#more:before{content:'↓'}#all:before{content:'⇊'}#exp:before{content:'⤓'}#copy:before{content:'⧉'}
 #tools:not([data-t=grid]) .gonly{display:none}
 #mwrap{position:relative;display:inline-block}
+#cmenu{position:fixed;z-index:40;min-width:200px;max-width:340px;background:var(--vscode-menu-background,var(--vscode-editorWidget-background,var(--vscode-editor-background)));border:1px solid var(--vscode-menu-border,var(--vscode-panel-border));border-radius:4px;padding:4px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+#cmenu button{display:block;width:100%;background:transparent;text-align:left;padding:5px 10px;border-radius:3px;color:var(--vscode-menu-foreground,var(--vscode-foreground));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#cmenu button:hover{background:var(--vscode-menu-selectionBackground,var(--vscode-list-hoverBackground))}
+#cmenu .inf{padding:4px 10px;opacity:.7;font-size:11px}#cmenu hr{border:0;border-top:1px solid var(--vscode-panel-border);margin:3px 0}
 #menu{position:absolute;right:0;top:100%;z-index:20;min-width:170px;flex-direction:column;background:var(--vscode-menu-background,var(--vscode-editorWidget-background,var(--vscode-editor-background)));border:1px solid var(--vscode-menu-border,var(--vscode-panel-border));border-radius:4px;padding:4px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
 #menu button{background:transparent;text-align:left;padding:5px 10px;border-radius:3px;color:var(--vscode-menu-foreground,var(--vscode-foreground))}#menu button:hover{background:var(--vscode-menu-selectionBackground,var(--vscode-list-hoverBackground))}
 #filter{border-radius:4px}#fcol{border-radius:4px}
@@ -300,7 +303,7 @@ th.pin,td.pin{position:sticky;z-index:2}th.pin{z-index:4}td.pin{background:var(-
  <span class="tab on" data-t="grid">${t('Data')}</span><span class="tab" data-t="log">${t('Script / Messages')}</span><span class="tab" data-t="errors">${t('Errors')}<span id="errn" class="errbadge" style="display:none"></span></span><span class="tab" data-t="output">DBMS Output</span><span class="tab" data-t="plan">Explain Plan</span>
  <div id="tools" data-t="grid">
   <div class="grp gonly"><input id="filter" placeholder="${t('Search in rows…')}" size="16"><select id="fcol" title="${t('Column to search in')}"><option value="-1">${t('All columns')}</option></select></div>
-  <div class="grp gonly"><button class="tb" id="fbtn" title="${t('Add filter criteria on a column (run by the database)')}">${t('Filter')}</button><button class="tb" id="colbtn" title="${t('Show / hide columns')}">${t('Columns')}</button></div>
+  <div class="grp gonly"><button class="tb" id="fbtn" title="${t('Add filter criteria on a column (run by the database)')}">${t('Filter')}</button><button class="tb acc" id="unf" style="display:none" title="${t('Remove every filter and show the whole result again')}">${t('Remove the filters')}</button><button class="tb" id="colbtn" title="${t('Show / hide columns')}">${t('Columns')}</button></div>
   <div class="grp gonly"><button class="tb acc" id="more" style="display:none" title="${t('Load the next page of rows')}">${t('Next rows')}</button><button class="tb acc" id="all" style="display:none" title="${t('Load every remaining row (can be cancelled)')}">${t('Show all')}</button></div>
   <div class="grp gonly"><button class="tb primary" id="applybtn" style="display:none"></button><button class="tb" id="discardbtn" style="display:none">${t('Discard')}</button></div>
   <div class="grp gonly"><button class="tb" id="exp" title="${t('Other formats: TSV, JSON, HTML, Markdown, SQL INSERT, XML')}">${t('Export…')}</button><button class="tb" id="copy" title="${t('Copy the rows to the clipboard')}">${t('Copy')}</button></div>
@@ -313,7 +316,7 @@ th.pin,td.pin{position:sticky;z-index:2}th.pin{z-index:4}td.pin{background:var(-
 <div id="cp" style="display:none"></div>
 <div id="dp" style="display:none"></div>
 <div id="legend"></div>
-<div id="fb" style="display:none"></div>
+<div id="fb" style="display:none"></div><div id="cmenu" style="display:none"></div>
 <div id="dirtybar" style="display:none"><span class="dot">●</span><b id="dirtytxt"></b><button id="dcommit" class="primary">${t('Commit')}</button><button id="drollback" class="primary warn">${t('Rollback')}</button></div>
 <div id="busybar" style="display:none"><span class="spin"></span><span id="busytxt"></span><button id="cancel2" style="margin-left:auto">${t('Cancel')}</button></div>
 <div id="main"><div id="grid" class="pane on"></div><div id="log" class="pane"><div id="sumt"></div><pre id="logt"></pre></div><div id="errors" class="pane"><pre id="errt"></pre></div><div id="output" class="pane"><pre id="outt"></pre></div><div id="plan" class="pane"><div id="plsum"></div><div id="plant"></div></div>
@@ -321,7 +324,7 @@ th.pin,td.pin{position:sticky;z-index:2}th.pin{z-index:4}td.pin{background:var(-
 <div id="status"></div>
 <script nonce="${nonce}">
 const vs=acquireVsCodeApi();
-const T=${JSON.stringify({ noresult: t('No result. Run a query ({0}).', 'F9'), dirty: t('Uncommitted data changes'), rows: t(' {0} row(s)'), shown: t(' ({0} shown)'), more: t(' (more available)'), running: t('Executing… '), timeout: t('timeout {0} s'), dupTitle: t('Duplicates on:'), dupWhy: t('Find the cause…'), dupWhyTip: t('Add the key of every table of the query to the SELECT to see which one repeats the rows'), dupOn: t('Highlight'), dupOnly: t('Only duplicates'), dupSummary: t('{0} duplicate row(s) in {1} group(s)'), dupNone: t('No duplicate among the loaded rows.'), dupPartial: t(' (loaded rows only)'), back: t('Back'), openSql: t('Open this query in an editor'), applyN: t('Apply ({0})'), editing: t('Edit mode: double-click a cell, Enter to stage, Esc to cancel; NULL = null value'), follow: t('Ctrl+click on a key: follow the link (Alt+Ctrl+click: choose, Shift+Ctrl+click: new editor)'), parentTip: t('parent row'), childTip: t('child rows'), colsLbl: t('Columns'), allBtn: t('All'), noneBtn: t('None'), kinds: { n: t('Number'), t: t('Text'), d: t('Date / time'), b: t('Boolean'), l: t('Binary / LOB'), o: t('Other') }, typesLbl: t('Column types'), pk: t('Primary key'), fk: t('Foreign key'), allCols: t('All columns'), filter: t('Filter'), addCrit: t('+ Add criterion'), apply: t('Apply'), clearF: t('Clear filters'), all: t('all criteria (AND)'), any: t('any criterion (OR)'), value: t('value'), and: t('and'), column: t('Column'), ops: { eq: '=', ne: '≠', gt: '>', ge: '≥', lt: '<', le: '≤', contains: t('contains'), starts: t('starts with'), ends: t('ends with'), in: t('in list (a, b, c)'), between: t('between'), null: t('is null'), notnull: t('is not null') }, showAll: t('Show all'), bannerGo: t('Click to go to the line'), identical: t('identical'), onlyIn: t('only in'), compare: t('Compare with…'), pinHint: t('Right-click a header: pin / unpin the column'), sumOk: t('OK'), sumErr: t('Error'), sumCancel: t('Cancelled'), sumRows: t('row(s)'), sumStmt: t('Statement'), sumLine: t('Line'), fullScans: t('{0} full table scan(s)'), planOk: t('No full table scan detected'), planFullTip: t('Full scan: the whole table is read (an index may help)'), sorted: t('sorted by the database'), filtered: t('filtered by the database') })};
+const T=${JSON.stringify({ noresult: t('No result. Run a query ({0}).', 'F9'), dirty: t('Uncommitted data changes'), rows: t(' {0} row(s)'), shown: t(' ({0} shown)'), more: t(' (more available)'), running: t('Executing… '), timeout: t('timeout {0} s'), dupTitle: t('Duplicates on:'), dupWhy: t('Find the cause…'), dupWhyTip: t('Add the key of every table of the query to the SELECT to see which one repeats the rows'), dupOn: t('Highlight'), dupOnly: t('Only duplicates'), dupSummary: t('{0} duplicate row(s) in {1} group(s)'), dupNone: t('No duplicate among the loaded rows.'), dupPartial: t(' (loaded rows only)'), back: t('Back'), openSql: t('Open this query in an editor'), applyN: t('Apply ({0})'), editing: t('Edit mode: double-click a cell, Enter to stage, Esc to cancel; NULL = null value'), follow: t('Ctrl+click on a key: follow the link (Alt+Ctrl+click: choose, Shift+Ctrl+click: new editor)'), parentTip: t('parent row'), childTip: t('child rows'), colsLbl: t('Columns'), allBtn: t('All'), noneBtn: t('None'), kinds: { n: t('Number'), t: t('Text'), d: t('Date / time'), b: t('Boolean'), l: t('Binary / LOB'), o: t('Other') }, typesLbl: t('Column types'), pk: t('Primary key'), fk: t('Foreign key'), allCols: t('All columns'), filter: t('Filter'), addCrit: t('+ Add criterion'), apply: t('Apply'), clearF: t('Clear filters'), all: t('all criteria (AND)'), any: t('any criterion (OR)'), value: t('value'), and: t('and'), column: t('Column'), ops: { eq: '=', ne: '≠', gt: '>', ge: '≥', lt: '<', le: '≤', contains: t('contains'), starts: t('starts with'), ends: t('ends with'), in: t('in list (a, b, c)'), between: t('between'), null: t('is null'), notnull: t('is not null') }, showAll: t('Show all'), bannerGo: t('Click to go to the line'), identical: t('identical'), onlyIn: t('only in'), compare: t('Compare with…'), pinHint: t('Right-click a header or a cell: filter, pin'), cmFilter: t('Filter this column…'), cmEq: t('Keep only: {0}'), cmNe: t('Exclude: {0}'), cmNull: t('Keep only empty (null) values'), cmNotNull: t('Keep only non-empty values'), cmPin: t('Pin the column'), cmUnpin: t('Unpin the column'), cmClear: t('Remove the filters'), cmClearTip: t('Remove every filter and show the whole result again'), cmType: t('Type: {0}'), sumOk: t('OK'), sumErr: t('Error'), sumCancel: t('Cancelled'), sumRows: t('row(s)'), sumStmt: t('Statement'), sumLine: t('Line'), fullScans: t('{0} full table scan(s)'), planOk: t('No full table scan detected'), planFullTip: t('Full scan: the whole table is read (an index may help)'), sorted: t('sorted by the database'), filtered: t('filtered by the database') })};
 const hidden=new Set(),pinned=new Set();let results=[],cur=-1,lastSeq=-2,lastDoc;let cpAlpha=true;let dup={on:false,cols:null,only:true},dupMap=null,dupGroups=0;let editing=false;const staged=new Map();
 function renderCrumbs(){
   const c=$('crumbs'),tr=grid&&grid.trail;
@@ -509,10 +512,32 @@ function syncFcol(){
   sel.innerHTML='<option value="-1">'+T.allCols+'</option>'+(grid?ord().map(i=>'<option value="'+i+'">'+esc(grid.columns[i].name)+'</option>').join(''):'');
   if([...sel.options].some(o=>o.value===cur))sel.value=cur;
 }
+function applyList(list,join){crit=list.map(c=>({...c}));cJoin=join;$('fb').dataset.open='0';if(grid.canView)sendView(currentSort(),list,join);else{clientCrit=list;clientJoin=join;render();}}
+function hideCM(){$('cmenu').style.display='none';}
+function showCM(e,items){const m=$('cmenu');m.innerHTML='';
+  for(const it of items){if(it==='-'){m.appendChild(document.createElement('hr'));continue;}
+    if(it.info){const d=document.createElement('div');d.className='inf';d.textContent=it.info;m.appendChild(d);continue;}
+    const b=document.createElement('button');b.textContent=it.t;b.title=it.t;b.onclick=ev=>{ev.stopPropagation();hideCM();it.f();};m.appendChild(b);}
+  m.style.display='block';const w=m.offsetWidth,h=m.offsetHeight;
+  m.style.left=Math.max(0,Math.min(e.clientX,window.innerWidth-w-4))+'px';m.style.top=Math.max(0,Math.min(e.clientY,window.innerHeight-h-4))+'px';}
+function openFilterFor(i){const cur=crit.filter(c=>c.op==='null'||c.op==='notnull'||(c.value!==undefined&&c.value!==''));crit=cur.concat([{col:i,op:'contains',value:''}]);const fb=$('fb');fb.dataset.open='1';renderFB();const inp=fb.querySelectorAll('.crit')[crit.length-1].querySelector('.v');if(inp)inp.focus();}
+function headMenu(e,i){const c=grid.columns[i],n=c.name,nf=activeFilters().length;
+  const items=[{info:n+' — '+c.type},{t:T.cmFilter,f:()=>openFilterFor(i)},{t:T.cmNull,f:()=>applyList(activeFilters().concat([{col:i,op:'null'}]),'AND')},{t:T.cmNotNull,f:()=>applyList(activeFilters().concat([{col:i,op:'notnull'}]),'AND')},'-',
+    {t:pinned.has(n)?T.cmUnpin:T.cmPin,f:()=>{if(pinned.has(n))pinned.delete(n);else pinned.add(n);render();}}];
+  if(nf)items.push('-',{t:T.cmClear+' ('+nf+')',f:()=>applyList([],'AND')});
+  showCM(e,items);}
+function cellMenu(e,td){const [r,j]=td.dataset.p.split(':').map(Number);const c=grid.columns[j],v=grid.rows[r][j],nf=activeFilters().length;
+  const sh=v===null?'(null)':String(v).length>40?String(v).slice(0,40)+'…':String(v);
+  const items=[{info:c.name+' — '+c.type}];
+  if(v===null)items.push({t:T.cmNotNull,f:()=>applyList(activeFilters().concat([{col:j,op:'notnull'}]),'AND')},{t:T.cmNull,f:()=>applyList(activeFilters().concat([{col:j,op:'null'}]),'AND')});
+  else items.push({t:T.cmEq.replace('{0}',c.name+' = '+sh),f:()=>applyList(activeFilters().concat([{col:j,op:'eq',value:String(v)}]),'AND')},{t:T.cmNe.replace('{0}',c.name+' <> '+sh),f:()=>applyList(activeFilters().concat([{col:j,op:'ne',value:String(v)}]),'AND')});
+  items.push({t:T.cmFilter,f:()=>openFilterFor(j)});
+  if(nf)items.push('-',{t:T.cmClear+' ('+nf+')',f:()=>applyList([],'AND')});
+  showCM(e,items);}
 function render(){
   syncFcol();
   recompute();
-  const nf=activeFilters().length;$('fbtn').textContent=T.filter+(nf?' ('+nf+')':'');$('fbtn').style.fontWeight=nf?'700':'';
+  const nf=activeFilters().length;$('fbtn').textContent=T.filter+(nf?' ('+nf+')':'');$('fbtn').style.fontWeight=nf?'700':'';$('unf').style.display=nf&&grid?'':'none';
   if(!grid){$('grid').innerHTML='<pre>'+T.noresult+'</pre>';status();return;}
   const kf=grid.keys||[],kl=grid.links||[],ks=grid.columns.map(c=>kind(c.type)),vis0=grid.columns.map((c,i)=>i).filter(i=>!hidden.has(grid.columns[i].name)),vis=pinned.size?vis0.filter(i=>pinned.has(grid.columns[i].name)).concat(vis0.filter(i=>!pinned.has(grid.columns[i].name))):vis0;
   let h='<table><thead><tr><th>#</th>'+vis.map(i=>{const c=grid.columns[i];return '<th class="k-'+ks[i]+'" data-i="'+i+'" title="'+esc(c.type)+'">'+(pinned.has(c.name)?'📌':'')+(kf[i]?'<span class="ki">'+(kf[i].includes('P')?'🔑':'')+(kf[i].includes('F')?'🔗':'')+'</span>':'')+esc(c.name)+(currentSort()&&currentSort().col===i?'<span class="si">'+(currentSort().dir==='asc'?'▲':'▼')+'</span>':'')+'</th>';}).join('')+'</tr></thead><tbody>';
@@ -527,7 +552,8 @@ function render(){
       sendView(next,(grid.view&&grid.view.filters)||[],(grid.view&&grid.view.join)||'AND');}
     else{if(sortCol===i)sortAsc=!sortAsc;else{sortCol=i;sortAsc=true;}render();}});
   $('grid').querySelectorAll('td.ed').forEach(td=>td.ondblclick=e=>{e.stopPropagation();startEdit(td);});
-  $('grid').querySelectorAll('th[data-i]').forEach(th=>th.oncontextmenu=e=>{e.preventDefault();const n=grid.columns[+th.dataset.i].name;if(pinned.has(n))pinned.delete(n);else pinned.add(n);render();});
+  $('grid').querySelectorAll('th[data-i]').forEach(th=>th.oncontextmenu=e=>{e.preventDefault();headMenu(e,+th.dataset.i);});
+  $('grid').querySelectorAll('td[data-p]').forEach(td=>td.oncontextmenu=e=>{e.preventDefault();cellMenu(e,td);});
   applyPins();
   syncEditBar();
   renderCrumbs();renderChips();
@@ -573,6 +599,8 @@ $('more').onclick=()=>vs.postMessage({cmd:'fetchMore'});
 $('all').onclick=()=>vs.postMessage({cmd:'fetchAll'});
 $('mbtn').onclick=e=>{e.stopPropagation();const m=$('menu');m.style.display=m.style.display==='flex'?'none':'flex';};
 document.addEventListener('click',e=>{const m=$('menu');if(m.style.display==='flex'&&!(e.target.closest&&e.target.closest('#menu button')&&false))m.style.display='none';});
+$('unf').onclick=()=>{if(grid)applyList([],'AND');};
+document.addEventListener('click',()=>hideCM());document.addEventListener('keydown',e=>{if(e.key==='Escape')hideCM();},true);window.addEventListener('blur',hideCM);
 $('fbtn').onclick=()=>{const fb=$('fb');if(fb.dataset.open==='1')fb.dataset.open='0';else{fb.dataset.open='1';if(!crit.length)crit=[{col:0,op:'contains',value:''}];}renderFB();};
 function renderCP(){const p=$('cp');if(!grid||p.dataset.open!=='1'){p.style.display='none';return;}
   p.style.display='block';
