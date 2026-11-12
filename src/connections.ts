@@ -392,6 +392,7 @@ export class ConnectionManager {
         this.sessions.set(id, session);
         this.activeId = id;
         this.touchMru(id);
+        void this.auxConn(id, 'lookup').catch(() => undefined); // prête pour les liens de clés étrangères / colonnes (aucun scan)
         void this.recordTest(id, true);
         return session;
       } catch (e) {

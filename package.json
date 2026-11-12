@@ -2,7 +2,7 @@
   "name": "db-explorer-Multi-SQL",
   "displayName": "DB Explorer Multi-SQL",
   "description": "%ext.description%",
-  "version": "0.36.0",
+  "version": "0.36.2",
   "publisher": "hugo0",
   "license": "MIT",
   "engines": {

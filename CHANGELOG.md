@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.36.2
+
+- **Fixed on Oracle: Ctrl+click on a key in the results grid (parent row / child rows, 🔗 indicators)** did not always work since 0.36.0. Without the connect-time scan, columns and foreign keys are read on demand through a metadata connection that was opened lazily, and the 1.2 s wait of the first query was often not enough. Now: the metadata connection is opened in the background right after connecting (no scan), the grid is shown immediately and the links appear as soon as they are ready (up to 15 s), and Describe › Data waits up to 10 s. Written for Oracle from the code path; I could not test it on an Oracle server, but the slow-database case is covered by a test with a simulated 1.8 s dictionary.
+
+## 0.36.1
+
+- **Fixed (regression of 0.36.0): Ctrl+click on a key in the results grid no longer followed foreign keys** on PostgreSQL, MySQL and SQLite (parent row / child rows, 🔗 indicators, join suggestions). Cause: those databases got their foreign keys only from the full metadata scan, which 0.36.0 no longer starts on connect. The foreign keys of the schema are now read on demand (one query) when needed. Oracle was not affected. Covered by a new integration test on real PostgreSQL and MySQL.
+
 ## 0.36.0
 
 - **New query (Ctrl+Alt+N)** asks for the target connection: the **last used one comes first** (Enter picks it), then the others by recent use, then "New connection…". The connection is opened if needed. With a single saved connection there is no question.

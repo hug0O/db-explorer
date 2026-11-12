@@ -625,7 +625,12 @@ export class Runner {
     const hasMore = rows.length === pageSize;
     if (hasMore) this.cursor = { rs, sql, binds, profileId: pid };
     else await rs.close();
-    const kinfo = this.meta ? await keyFlags(this.meta, pid, session.conn.currentSchema, sql, rs.columns).catch(() => undefined) : undefined;
+    // clés / liens : on attend un peu ; si la base est lente (connexion de métadonnées à froid, gros dictionnaire) la grille s'affiche
+    // tout de suite et les liens de clés étrangères arrivent dès qu'ils sont prêts
+    const schemaNow = session.conn.currentSchema;
+    const kfP = this.meta ? keyFlags(this.meta, pid, schemaNow, sql, rs.columns, 15000).catch(() => undefined) : Promise.resolve(undefined);
+    const early = await within(kfP, 1500);
+    const kinfo = early === TIMEOUT ? undefined : early;
     const keys = kinfo?.flags;
     const links = kinfo?.links.some((l) => l.length) ? kinfo.links : undefined;
     this.editCtx = kinfo?.edit ? { pid, table: kinfo.edit.table, pkNames: kinfo.edit.pkNames, columns: rs.columns.map((c) => c.name) } : undefined;
@@ -640,6 +645,18 @@ export class Runner {
     }
     this.panel.update({ grid, tab: 'grid' });
     this.panel.log(t('{0} row(s) selected — {1} ms', rows.length + (hasMore ? '+' : ''), ms), false);
+    if (early === TIMEOUT) {
+      const seq = this.panel.state.gridSeq;
+      void kfP.then((late) => {
+        if (!late || this.panel.state.gridSeq !== seq) return; // un autre résultat est affiché entre-temps
+        grid.keys = late.flags;
+        grid.links = late.links.some((l) => l.length) ? late.links : undefined;
+        grid.edit = late.edit ? { pk: late.edit.pk, cols: late.edit.cols } : undefined;
+        this.editCtx = late.edit ? { pid, table: late.edit.table, pkNames: late.edit.pkNames, columns: rs.columns.map((c) => c.name) } : undefined;
+        if (crumbNow) crumbNow.edit = this.editCtx;
+        this.panel.patchGrid(seq, { keys: grid.keys, links: grid.links, edit: grid.edit });
+      });
+    }
   }
 
   private fetchingAll = false;

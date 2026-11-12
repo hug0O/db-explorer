@@ -36,7 +36,7 @@ export async function dataContent(conn: DbConn, sql: string, schema: string, ctx
     const rows = raw.map(fmtRow);
     const out: TabContent = { columns: rs.columns.map((c) => c.name), types: rs.columns.map((c) => c.type), rows, sql, more };
     if (ctx?.cache) {
-      const k = await keyFlags(ctx.cache, ctx.pid, schema, sql, rs.columns).catch(() => undefined);
+      const k = await keyFlags(ctx.cache, ctx.pid, schema, sql, rs.columns, 10000).catch(() => undefined);
       if (k) {
         out.keys = k.flags;
         if (k.links.some((l) => l.length)) out.links = k.links;

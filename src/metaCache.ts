@@ -263,6 +263,14 @@ export class MetaCache {
     if (!p) {
       p = (async () => {
         const conn = await this.mgr.auxConn(pid, 'lookup');
+        if (!conn.foreignKeysOf && conn.foreignKeys) {
+          // PostgreSQL / MySQL / SQLite : une seule requête donne toutes les clés étrangères du schéma ; sans scan préalable elles
+          // n'étaient pas chargées, donc plus de liens Ctrl+clic ni de jointures proposées
+          const all = await conn.foreignKeys(schema);
+          const meta = await this.get(pid, schema, false);
+          if (!meta.fks.length) meta.fks = all;
+          return all.filter((f) => f.table.toLowerCase() === k || f.refTable.toLowerCase() === k);
+        }
         const list = conn.foreignKeysOf ? await conn.foreignKeysOf(schema, table) : [];
         const meta = this.peek(pid, schema);
         if (meta) meta.fkOf[k] = list;

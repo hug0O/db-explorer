@@ -140,6 +140,27 @@ CREATE OR REPLACE PUBLIC SYNONYM "T" FOR "S"."T";`;
     assert.strictEqual(classify('CREATE SEQUENCE s').kind, 'sequence');
   });
 
+  console.log('liens de clés étrangères (base lente, type Oracle)');
+  {
+    const { MetaCache } = out('metaCache.js');
+    const { keyFlags } = out('keyFlags.js');
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const fkRows = [{ name: 'FK_C_P', table: 'CHILD', cols: ['PARENT_ID'], refSchema: 'S', refTable: 'PARENT', refCols: ['ID'] }];
+    const mkCache = (delay) => {
+      const conn = { kind: 'oracle', currentSchema: 'S', foreignKeysOf: async () => (await wait(delay), fkRows), columnsLite: async () => (await wait(200), [{ name: 'ID', type: 'NUMBER', pk: true }, { name: 'PARENT_ID', type: 'NUMBER', pk: false }]) };
+      return new MetaCache({ globalStorageUri: { fsPath: require('os').tmpdir() + '/dbx-ut-meta' } }, { isConnected: () => true, session: () => ({ busy: false, conn }), auxConn: async () => conn, get: () => ({ name: 'x' }) });
+    };
+    await test('clés étrangères trouvées avec le délai étendu même si la base met 1,8 s', async () => {
+      const info = await keyFlags(mkCache(1800), 'p', 'S', 'SELECT * FROM CHILD', [{ name: 'ID' }, { name: 'PARENT_ID' }], 8000);
+      assert.ok(info.links[1].some((l) => l.k === 'p' && l.t === 'PARENT'), JSON.stringify(info.links));
+      assert.ok(/F/.test(info.flags[1]));
+    });
+    await test('délai court (1,2 s) : pas de lien, ce que le panneau rattrape ensuite en arrière-plan', async () => {
+      const info = await keyFlags(mkCache(1800), 'p', 'S', 'SELECT * FROM CHILD', [{ name: 'ID' }, { name: 'PARENT_ID' }], 1200);
+      assert.ok(!info.links[1].length);
+    });
+  }
+
   console.log(`\n${passed} réussi(s), ${failed} échec(s)`);
   process.exit(failed ? 1 : 0);
 })();

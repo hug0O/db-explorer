@@ -117,6 +117,34 @@ const rowsOf = async (conn, sql, n = 100) => { const rs = await conn.open(sql, {
       }
       for (const x of [C, P]) await conn.exec(`DROP TABLE IF EXISTS ${x}`, {}, true).catch(() => {});
     });
+    if (t.profile.type !== 'oracle') {
+      await test('Ctrl+clic : liens de clé étrangère trouvés sans scan préalable du schéma', async () => {
+        const { MetaCache } = require(path.join(__dirname, '..', 'out', 'metaCache.js'));
+        const { keyFlags } = require(path.join(__dirname, '..', 'out', 'keyFlags.js'));
+        const P = 'dbx_it_lp', C = 'dbx_it_lc';
+        for (const x of [C, P]) await conn.exec(`DROP TABLE IF EXISTS ${x}`, {}, true).catch(() => {});
+        await conn.exec(`CREATE TABLE ${P} (id INTEGER PRIMARY KEY, name VARCHAR(20))`, {}, true);
+        await conn.exec(`CREATE TABLE ${C} (id INTEGER PRIMARY KEY, parent_id INTEGER, CONSTRAINT fk_dbx_lc FOREIGN KEY (parent_id) REFERENCES ${P} (id))`, {}, true);
+        await conn.exec(`INSERT INTO ${P} (id, name) VALUES (1, 'p')`, {}, true);
+        await conn.exec(`INSERT INTO ${C} (id, parent_id) VALUES (1, 1)`, {}, true);
+        const mgr = { isConnected: () => true, session: () => ({ busy: false, conn }), auxConn: async () => conn, get: () => ({ name: 'x' }) };
+        const cache = new MetaCache({ globalStorageUri: { fsPath: require('os').tmpdir() + '/dbx-it-meta' } }, mgr);
+        const rs = await conn.open(`SELECT * FROM ${C}`, {});
+        await rs.getRows(10);
+        await rs.close(); // même connexion que l'aide aux métadonnées dans ce test : curseur fermé avant
+        const info = await keyFlags(cache, 'p', conn.currentSchema, `SELECT * FROM ${C}`, rs.columns);
+        const i = rs.columns.findIndex((c) => /^parent_id$/i.test(c.name));
+        assert.ok(info.links[i].some((l) => l.k === 'p' && l.t.toLowerCase() === P), 'lien vers la table parente (colonne parent_id) : ' + JSON.stringify(info.links));
+        assert.ok(/F/.test(info.flags[i]), 'indicateur FK : ' + info.flags.join(','));
+        // et dans l'autre sens : la table parente propose ses lignes enfants
+        const rs2 = await conn.open(`SELECT * FROM ${P}`, {});
+        await rs2.getRows(10);
+        await rs2.close();
+        const info2 = await keyFlags(cache, 'p', conn.currentSchema, `SELECT * FROM ${P}`, rs2.columns);
+        assert.ok(info2.links[0].some((l) => l.k === 'c' && l.t.toLowerCase() === C), 'lignes enfants : ' + JSON.stringify(info2.links));
+        for (const x of [C, P]) await conn.exec(`DROP TABLE IF EXISTS ${x}`, {}, true).catch(() => {});
+      });
+    }
     if (t.profile.type !== 'sqlite') {
       await test('routines : procédure et fonction listées avec leurs paramètres', async () => {
         const pg = t.profile.type === 'postgres';

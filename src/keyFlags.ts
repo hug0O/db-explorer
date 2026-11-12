@@ -37,7 +37,7 @@ export interface KeyInfo {
  * Pour chaque colonne du résultat : indicateur PK / FK et liens de navigation par clé étrangère.
  * Rapprochement par nom avec les tables de la requête (cache en priorité, sinon requête ciblée limitée dans le temps).
  */
-export async function keyFlags(cache: MetaCache, pid: string, schema: string, sql: string, columns: { name: string }[]): Promise<KeyInfo> {
+export async function keyFlags(cache: MetaCache, pid: string, schema: string, sql: string, columns: { name: string }[], waitMs = 1200): Promise<KeyInfo> {
   const flags = columns.map(() => ({ p: false, f: false }));
   const links: GridLink[][] = columns.map(() => []);
   const empty = (): KeyInfo => ({ flags: flags.map(() => ''), links });
@@ -71,8 +71,8 @@ export async function keyFlags(cache: MetaCache, pid: string, schema: string, sq
       const owner = o.replace(/"/g, '');
       const table = norm(tb);
       const [cols, fks] = await Promise.all([
-        within(cache.columns(pid, owner, tb.replace(/"/g, '')).catch(() => [] as ColMeta[]), 1200),
-        within(cache.fksFor(pid, owner, tb.replace(/"/g, '')).catch(() => [] as ForeignKey[]), 1200),
+        within(cache.columns(pid, owner, tb.replace(/"/g, '')).catch(() => [] as ColMeta[]), waitMs),
+        within(cache.fksFor(pid, owner, tb.replace(/"/g, '')).catch(() => [] as ForeignKey[]), waitMs),
       ]);
       if (cols !== TIMEOUT) {
         if (refs.length === 1) tableCols = cols;

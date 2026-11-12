@@ -194,6 +194,14 @@ export class ResultsPanel implements vscode.WebviewViewProvider {
     this.post({ type: 'append', rows, hasMore });
   }
 
+  /** Indicateurs de clés et liens calculés après l'affichage de la grille (base lente) : mis à jour sans changer d'onglet. */
+  patchGrid(seq: number | undefined, meta: { keys?: string[]; links?: GridLink[][]; edit?: GridData['edit'] }) {
+    const g = this.state.grid;
+    if (!g || this.state.gridSeq !== seq) return;
+    Object.assign(g, meta);
+    this.post({ type: 'gridMeta', seq, ...meta });
+  }
+
   setBusy(busy: boolean, label?: string, timeoutSec?: number) {
     this.post({ type: 'busy', busy, label, timeoutSec, startedAt: Date.now() });
   }
@@ -545,6 +553,7 @@ function setLog(lines){logLines=lines;let inErr=false;const msgs=[],errs=[];let 
 document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('.loc');if(a)vs.postMessage({cmd:'goto',uri:a.dataset.u,line:+a.dataset.l});});
 window.addEventListener('message',e=>{const m=e.data;
   if(m.type==='state'){const s=m.state;const prevTitle=grid&&grid.title;staged.clear();adopt(s);if(s.activeDoc!==lastDoc){lastDoc=s.activeDoc;const k=results.map(r=>r.grid.doc).lastIndexOf(lastDoc);if(lastDoc&&k>=0&&k!==cur){cur=k;grid=results[k].grid;}}if(!prevTitle||grid&&grid.title!==prevTitle)dup.cols=null;if(!grid||grid.title!==prevTitle||!grid.view){if(!grid||grid.title!==prevTitle){sortCol=-1;clientCrit=[];}if(grid&&grid.view){crit=grid.view.filters.map(c=>({...c}));cJoin=grid.view.join;}else if(!grid||grid.title!==prevTitle)crit=[];}else{crit=grid.view.filters.map(c=>({...c}));cJoin=grid.view.join;}render();const logErr=setLog(s.log);$('outt').textContent=s.output;renderPlan(s.plan);renderSummary(s.summary);renderBanner(s.banner);tab(s.tab==='log'&&logErr?'errors':s.tab);}
+  else if(m.type==='gridMeta'){const L=results.find(r=>r.seq===m.seq);if(L){L.grid.keys=m.keys;L.grid.links=m.links;L.grid.edit=m.edit;if(grid===L.grid)render();}}
   else if(m.type==='append'){const L=results.find(r=>r.seq===lastSeq),g=L?L.grid:grid;if(g){g.rows.push(...m.rows);g.hasMore=m.hasMore;}render();}
   else if(m.type==='log'){logLines.push(m.line);setLog(logLines);}
   else if(m.type==='editResult'){$('applybtn').disabled=false;
