@@ -13,11 +13,11 @@ import { t } from './i18n';
 const KW = vscode.CompletionItemKind;
 
 const KEYWORDS = [
-  'SELECT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'HAVING', 'JOIN', 'LEFT JOIN', 'INNER JOIN', 'RIGHT JOIN', 'FULL OUTER JOIN', 'CROSS JOIN', 'ON', 'USING',
+  'SELECT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'HAVING', 'JOIN', 'LEFT JOIN', 'LEFT OUTER JOIN', 'INNER JOIN', 'RIGHT JOIN', 'RIGHT OUTER JOIN', 'FULL JOIN', 'FULL OUTER JOIN', 'CROSS JOIN', 'NATURAL JOIN', 'ON', 'USING',
   'INSERT INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE FROM', 'MERGE INTO', 'CREATE TABLE', 'CREATE OR REPLACE', 'ALTER TABLE', 'DROP TABLE', 'TRUNCATE TABLE',
   'DISTINCT', 'UNION ALL', 'UNION', 'MINUS', 'INTERSECT', 'CASE WHEN', 'WHEN', 'THEN', 'ELSE', 'END', 'AND', 'OR', 'NOT', 'IN', 'EXISTS', 'BETWEEN', 'LIKE',
   'IS NULL', 'IS NOT NULL', 'AS', 'ASC', 'DESC', 'FETCH FIRST', 'ROWS ONLY', 'FOR UPDATE', 'WITH', 'CONNECT BY', 'START WITH', 'PARTITION BY', 'OVER',
-  'BEGIN', 'DECLARE', 'EXCEPTION', 'LOOP', 'END LOOP', 'IF', 'ELSIF', 'END IF', 'FOR', 'WHILE', 'RETURN', 'COMMIT', 'ROLLBACK', 'DUAL', 'ROWNUM', 'NULL',
+  'CASE', 'ROWS BETWEEN', 'UNBOUNDED PRECEDING', 'CURRENT ROW', 'NULLS FIRST', 'NULLS LAST', 'WITHIN GROUP', 'OFFSET', 'LIMIT', 'ALL', 'ANY', 'SOME', 'ROWNUM', 'NOWAIT', 'SKIP LOCKED', 'CONNECT_BY_ROOT', 'PRIOR', 'LEVEL', 'BEGIN', 'DECLARE', 'EXCEPTION', 'LOOP', 'END LOOP', 'IF', 'ELSIF', 'END IF', 'FOR', 'WHILE', 'RETURN', 'COMMIT', 'ROLLBACK', 'DUAL', 'ROWNUM', 'NULL',
 ];
 /** Mots-clés proposés juste après « FROM table » / « JOIN table ». */
 const AFTER_TABLE = ['WHERE', 'GROUP BY', 'ORDER BY', 'HAVING', 'JOIN', 'LEFT JOIN', 'INNER JOIN', 'RIGHT JOIN', 'FULL OUTER JOIN', 'ON', 'UNION ALL', 'UNION', 'FETCH FIRST', 'FOR UPDATE'];
@@ -31,8 +31,33 @@ const FUNCTIONS: [string, string][] = [
   ['REPLACE', 'REPLACE(${1}, ${2}, ${3})'], ['LPAD', 'LPAD(${1}, ${2}, ${3})'], ['RPAD', 'RPAD(${1}, ${2}, ${3})'], ['CONCAT', 'CONCAT(${1}, ${2})'],
   ['SYSDATE', 'SYSDATE'], ['SYSTIMESTAMP', 'SYSTIMESTAMP'], ['ADD_MONTHS', 'ADD_MONTHS(${1}, ${2})'], ['MONTHS_BETWEEN', 'MONTHS_BETWEEN(${1}, ${2})'], ['LAST_DAY', 'LAST_DAY(${1})'],
   ['ROW_NUMBER', 'ROW_NUMBER() OVER (ORDER BY ${1})'], ['RANK', 'RANK() OVER (ORDER BY ${1})'], ['LISTAGG', "LISTAGG(${1}, '${2:,}') WITHIN GROUP (ORDER BY ${3})"],
+  ['NULLIF', 'NULLIF(${1}, ${2})'], ['GREATEST', 'GREATEST(${1}, ${2})'], ['LEAST', 'LEAST(${1}, ${2})'], ['INITCAP', 'INITCAP(${1})'], ['LTRIM', 'LTRIM(${1})'], ['RTRIM', 'RTRIM(${1})'],
+  ['TRANSLATE', 'TRANSLATE(${1}, ${2}, ${3})'], ['TO_TIMESTAMP', "TO_TIMESTAMP(${1}, '${2:YYYY-MM-DD HH24:MI:SS}')"], ['NEXT_DAY', 'NEXT_DAY(${1}, ${2})'], ['EXTRACT', 'EXTRACT(${1:YEAR} FROM ${2})'],
+  ['DENSE_RANK', 'DENSE_RANK() OVER (ORDER BY ${1})'], ['LAG', 'LAG(${1}, ${2:1}) OVER (ORDER BY ${3})'], ['LEAD', 'LEAD(${1}, ${2:1}) OVER (ORDER BY ${3})'],
+  ['FIRST_VALUE', 'FIRST_VALUE(${1}) OVER (ORDER BY ${2})'], ['LAST_VALUE', 'LAST_VALUE(${1}) OVER (ORDER BY ${2})'], ['MOD', 'MOD(${1}, ${2})'], ['ABS', 'ABS(${1})'], ['CEIL', 'CEIL(${1})'], ['FLOOR', 'FLOOR(${1})'],
+  ['REGEXP_LIKE', 'REGEXP_LIKE(${1}, ${2})'], ['REGEXP_SUBSTR', 'REGEXP_SUBSTR(${1}, ${2})'], ['REGEXP_REPLACE', 'REGEXP_REPLACE(${1}, ${2}, ${3})'], ['REGEXP_INSTR', 'REGEXP_INSTR(${1}, ${2})'],
+  ['SYS_GUID', 'SYS_GUID()'], ['SYS_CONTEXT', "SYS_CONTEXT('${1:USERENV}', '${2:SESSION_USER}')"], ['TO_CLOB', 'TO_CLOB(${1})'], ['XMLAGG', 'XMLAGG(${1})'], ['NTILE', 'NTILE(${1}) OVER (ORDER BY ${2})'],
   ['CAST', 'CAST(${1} AS ${2})'], ['DBMS_OUTPUT.PUT_LINE', 'DBMS_OUTPUT.PUT_LINE(${1})'], ['RAISE_APPLICATION_ERROR', 'RAISE_APPLICATION_ERROR(-20001, ${1})'],
 ];
+
+
+/** Pseudo-colonnes et valeurs système (Oracle surtout) : nom → description. */
+const CONSTANTS: [string, string][] = [
+  ['CURRENT_DATE', 'Current date and time in the session time zone (DATE).'],
+  ['CURRENT_TIMESTAMP', 'Current date and time in the session time zone (TIMESTAMP WITH TIME ZONE).'],
+  ['LOCALTIMESTAMP', 'Current date and time in the session time zone (TIMESTAMP, no time zone).'],
+  ['SYSDATE', 'Current date and time of the database server (DATE).'],
+  ['SYSTIMESTAMP', 'Current date and time of the database server (TIMESTAMP WITH TIME ZONE).'],
+  ['SESSIONTIMEZONE', 'Time zone of the current session.'],
+  ['DBTIMEZONE', 'Time zone of the database.'],
+  ['CURRENT_SCHEMA', 'Schema used to resolve unqualified names.'],
+  ['USER', 'Name of the connected user.'],
+  ['UID', 'Numeric id of the connected user.'],
+  ['ROWNUM', 'Pseudo-column: row number in the result set (assigned before ORDER BY).'],
+  ['ROWID', 'Pseudo-column: physical address of the row.'],
+  ['LEVEL', 'Pseudo-column of hierarchical queries (CONNECT BY): depth in the tree.'],
+];
+const WORD_DOCS = new Map<string, string>(CONSTANTS.map(([n, d]) => [n, d]));
 
 /** Gabarits de requêtes : libellé, texte, préfixe. */
 const SNIPPETS: [string, string, string][] = [
@@ -422,6 +447,8 @@ export class SqlCompletion implements vscode.CompletionItemProvider, vscode.Hove
     const wr = doc.getWordRangeAtPosition(pos, /"?[\w$#]+"?/);
     if (!act || !wr) return undefined;
     const word = doc.getText(wr).replace(/"/g, '');
+    const wd = WORD_DOCS.get(word.toUpperCase());
+    if (wd) return new vscode.Hover(new vscode.MarkdownString('**' + word.toUpperCase() + '** — ' + wd), wr);
     const c = this.analyze(doc, wr.end);
     if (!c.whole) return undefined;
     const refs = parseRefList(c.whole, c.before.length);
@@ -1074,6 +1101,12 @@ export class SqlCompletion implements vscode.CompletionItemProvider, vscode.Hove
     for (const [name, snip] of FUNCTIONS) {
       if ((!includeFunctions && !partial) || !subseq(name, partial)) continue;
       items.push(mk(cs(name), KW.Function, '5', t('Function'), new vscode.SnippetString(snip.replace(/^[A-Za-z_.]+/, (m) => cs(m)))));
+    }
+    for (const [name, doc] of CONSTANTS) {
+      if ((!includeFunctions && !partial) || !subseq(name, partial)) continue;
+      const i = mk(cs(name), KW.Constant, '4', t('System value'));
+      i.documentation = new vscode.MarkdownString('**' + name + '** — ' + doc);
+      items.push(i);
     }
     for (const k of KEYWORDS) if (subseq(k, partial)) items.push(mk(cs(k), KW.Keyword, '8'));
     for (const [label, body, key] of SNIPPETS) {

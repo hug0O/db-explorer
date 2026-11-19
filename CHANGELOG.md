@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.38.0
+
+- **Completion of Oracle system values**: `CURRENT_DATE`, `CURRENT_TIMESTAMP`, `LOCALTIMESTAMP`, `SYSDATE`, `SYSTIMESTAMP`, `SESSIONTIMEZONE`, `DBTIMEZONE`, `USER`, `ROWNUM`, `ROWID`, `LEVEL`… are suggested (with a description) and explained on hover. Added functions: `NULLIF`, `GREATEST`, `LEAST`, `INITCAP`, `LTRIM`/`RTRIM`, `TRANSLATE`, `EXTRACT`, `LAG`/`LEAD`, `DENSE_RANK`, `REGEXP_*`, `SYS_CONTEXT`…; added keywords: `LEFT/RIGHT OUTER JOIN`, `NATURAL JOIN`, `NULLS FIRST/LAST`, etc.
+- **Aligned new line**: after a line ending with a comma, Enter puts the cursor under the first item of that line (`SELECT a,⏎` → under `a`) instead of going back to the start of the line. Turn off with `dbexplorer.alignNewLine`.
+- **Richer SQL highlighting**: clauses (`SELECT`, `FROM`, `WHERE`, `AND`, `CASE WHEN`…), every form of `JOIN`, Oracle functions (`NVL`, `DECODE`, `COALESCE`…) and system values (`SYSDATE`, `CURRENT_DATE`…) get their own colours, depending on your theme.
+
 ## 0.37.0
 
 - **Ctrl+Alt+D on a column name in the editor** (`col` or `alias.col`): shows its type, "PK" and comment, from the tables of the query (with a button to describe the table). On a table or alias name it still opens Describe as before.

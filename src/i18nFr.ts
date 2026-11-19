@@ -809,6 +809,7 @@ export const FR: Record<string, string> = {
   "identical": "identiques",
   "only in": "seulement dans",
   "Right-click a header or a cell: filter, pin": "Clic droit sur un en-tête ou une cellule : filtrer, épingler",
+  "System value": "Valeur système",
   "Filter this column…": "Filtrer cette colonne…",
   "Keep only: {0}": "Garder seulement : {0}",
   "Exclude: {0}": "Exclure : {0}",

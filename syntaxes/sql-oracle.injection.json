@@ -1,0 +1,28 @@
+{
+  "scopeName": "dbexplorer.sql.injection",
+  "injectionSelector": "L:source.sql -comment -string",
+  "patterns": [
+    { "include": "#clauses" },
+    { "include": "#joins" },
+    { "include": "#functions" },
+    { "include": "#constants" }
+  ],
+  "repository": {
+    "clauses": {
+      "match": "(?i)\\b(select|from|where|group\\s+by|order\\s+by|having|union(?:\\s+all)?|minus|intersect|connect\\s+by|start\\s+with|and|or|not|in|exists|between|like|is(?:\\s+not)?\\s+null|case|when|then|else|end|as|distinct|insert\\s+into|values|update|set|delete\\s+from|merge\\s+into|matched|fetch\\s+first|rows\\s+only|for\\s+update|with|over|partition\\s+by|on|using|asc|desc|nulls\\s+(?:first|last)|prior|nowait|skip\\s+locked|all|any|some)\\b",
+      "name": "keyword.control.sql.dbexplorer"
+    },
+    "joins": {
+      "match": "(?i)\\b(?:(?:(?:left|right|full)(?:\\s+outer)?|inner|cross|natural)\\s+)?join\\b",
+      "name": "keyword.control.join.sql.dbexplorer"
+    },
+    "functions": {
+      "match": "(?i)\\b(nvl2?|decode|coalesce|nullif|greatest|least|to_char|to_date|to_number|to_timestamp|to_clob|trunc|round|ceil|floor|mod|abs|substr|instr|length|upper|lower|initcap|trim|ltrim|rtrim|replace|translate|lpad|rpad|concat|listagg|xmlagg|count|sum|avg|min|max|row_number|rank|dense_rank|ntile|lead|lag|first_value|last_value|add_months|months_between|last_day|next_day|extract|cast|regexp_like|regexp_substr|regexp_replace|regexp_instr|sys_guid|sys_context|dbms_output\\.put_line|raise_application_error)(?=\\s*\\()",
+      "name": "support.function.sql.dbexplorer"
+    },
+    "constants": {
+      "match": "(?i)\\b(current_date|current_timestamp|localtimestamp|sysdate|systimestamp|sessiontimezone|dbtimezone|rownum|rowid|dual|null|true|false)\\b",
+      "name": "constant.language.sql.dbexplorer"
+    }
+  }
+}

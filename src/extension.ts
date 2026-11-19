@@ -497,6 +497,27 @@ ${t('Click to switch connection')}`;
   reg('dbexplorer.selectName', (name: string, uri?: vscode.Uri) => runInNewEditor(`SELECT *\n  FROM ${name};\n`, uri));
   reg('dbexplorer.countName', (name: string, uri?: vscode.Uri) => runInNewEditor(`SELECT COUNT(*)\n  FROM ${name};\n`, uri));
   reg('dbexplorer.codeActions', () => vscode.commands.executeCommand('editor.action.quickFix'));
+  // Entrée : la nouvelle ligne s'aligne sous le premier élément de la ligne précédente (« SELECT a,⏎ » → sous « a »)
+  const CLAUSE_LEAD = /^(\s*)((?:select(?:\s+(?:distinct|unique|all))?|from|where|and|or|set|having|on|group\s+by|order\s+by|(?:(?:left|right|full)(?:\s+outer)?|inner|cross|natural)?\s*join|using|values|when|then|else|connect\s+by|start\s+with|partition\s+by|returning|into)\s*)/i;
+  reg('dbexplorer.smartEnter', async () => {
+    const e = vscode.window.activeTextEditor;
+    if (!e) return;
+    const plain = () => vscode.commands.executeCommand('default:type', { text: '\n' });
+    if (e.selections.length !== 1) return plain();
+    const sel = e.selection;
+    const line = e.document.lineAt(sel.start.line).text;
+    const before = line.slice(0, sel.start.character);
+    // hors cas « fin de champ » : comportement normal de l'éditeur (indentation automatique)
+    if (!before.trimEnd().endsWith(',')) return plain();
+    const lead = CLAUSE_LEAD.exec(before);
+    const target = lead ? lead[0].length : /^\s*/.exec(before)![0].length;
+    const wsPrefix = /^\s*/.exec(before)![0];
+    if (target === 0) return plain();
+    const indent = wsPrefix.length >= target && !wsPrefix.includes('\t') ? wsPrefix.slice(0, target) : wsPrefix + ' '.repeat(Math.max(0, target - wsPrefix.length));
+    await e.edit((b) => b.replace(sel, '\n' + indent));
+    const pos = new vscode.Position(sel.start.line + 1, indent.length);
+    e.selection = new vscode.Selection(pos, pos);
+  });
   // Ctrl+F9 : types des colonnes de la requête
   reg('dbexplorer.describeQuery', async () => {
     const e = sqlEditor();

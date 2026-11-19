@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.38.0
+
+- **Aide à la saisie des valeurs système Oracle** : `CURRENT_DATE`, `CURRENT_TIMESTAMP`, `LOCALTIMESTAMP`, `SYSDATE`, `SYSTIMESTAMP`, `SESSIONTIMEZONE`, `DBTIMEZONE`, `USER`, `ROWNUM`, `ROWID`, `LEVEL`… sont proposées (avec leur description) et décrites au survol. Fonctions ajoutées : `NULLIF`, `GREATEST`, `LEAST`, `INITCAP`, `LTRIM`/`RTRIM`, `TRANSLATE`, `EXTRACT`, `LAG`/`LEAD`, `DENSE_RANK`, `REGEXP_*`, `SYS_CONTEXT`… ; mots-clés ajoutés : `LEFT/RIGHT OUTER JOIN`, `NATURAL JOIN`, `NULLS FIRST/LAST`, etc.
+- **Retour à la ligne aligné** : après une ligne qui se termine par une virgule, Entrée place le curseur sous le premier élément de la ligne (`SELECT a,⏎` → sous `a`) au lieu de revenir au début de la ligne. Désactivable avec `dbexplorer.alignNewLine`.
+- **Coloration SQL enrichie** : les clauses (`SELECT`, `FROM`, `WHERE`, `AND`, `CASE WHEN`…), toutes les formes de `JOIN`, les fonctions Oracle (`NVL`, `DECODE`, `COALESCE`…) et les valeurs système (`SYSDATE`, `CURRENT_DATE`…) ont leurs propres couleurs, selon votre thème.
+
 ## 0.37.0
 
 - **Ctrl+Alt+D sur un nom de colonne dans l'éditeur** (« col » ou « alias.col ») : affiche son type, « PK » et son commentaire, d'après les tables de la requête (avec un bouton pour décrire la table). Sur un nom de table ou d'alias, ça ouvre toujours Describe comme avant.
