@@ -17,5 +17,5 @@ jobs:
       - name: The tag is the version of the package
         shell: bash
         run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
-      # the extension bundles its dependencies (oracledb, pg, mysql2, sqlite), so no --no-dependencies here
-      - run: npx @vscode/vsce publish --oidc
+      # vsce 4.x is required for --oidc (the devDependency is 3.x, which npx would pick); the extension bundles its dependencies, so no --no-dependencies
+      - run: npx --yes @vscode/vsce@4.1.1 publish --oidc
