@@ -1430,20 +1430,18 @@ ${t('Click to switch connection')}`;
   // Déclenche l'aide à la saisie avec un raccourci propre (Ctrl+Espace est souvent pris par le système / la méthode de saisie)
   reg('dbexplorer.suggest', () => vscode.commands.executeCommand('editor.action.triggerSuggest'));
 
-  // Après Entrée (FROM⏎, JOIN⏎, WHERE⏎, virgule⏎…) : VS Code ne rouvre pas l'aide tout seul
+  // Aucune aide automatique après Entrée / espace (elle insérait la 1re table sans qu'on l'ait demandée) : Ctrl+Espace, ou dès qu'on tape.
+  // En revanche on précharge en tâche de fond colonnes et clés étrangères des tables de la requête, pour que la 1re jointure soit proposée sans attente.
+  let warmTimer: NodeJS.Timeout | undefined;
   ctx.subscriptions.push(
     vscode.workspace.onDidChangeTextDocument((e) => {
       const ed = vscode.window.activeTextEditor;
-      if (!ed || ed.document !== e.document || e.document.languageId !== 'sql' || e.contentChanges.length !== 1) return;
-      if (!/^\r?\n[ \t]*$/.test(e.contentChanges[0].text)) return;
-      setTimeout(() => {
+      if (!ed || ed.document !== e.document || e.document.languageId !== 'sql') return;
+      if (warmTimer) clearTimeout(warmTimer);
+      warmTimer = setTimeout(() => {
         const cur = vscode.window.activeTextEditor;
-        if (!cur || cur.document !== e.document) return;
-        if (completion.wantsAutoSuggest(cur.document, cur.selection.active)) {
-          completion.autoTrigger = true;
-          void vscode.commands.executeCommand('editor.action.triggerSuggest');
-        }
-      }, 40);
+        if (cur && cur.document === e.document) completion.warm(cur.document, cur.selection.active);
+      }, 600);
     })
   );
 
@@ -1679,7 +1677,7 @@ ${t('Click to switch connection')}`;
     vscode.window.registerWebviewViewProvider(SetupView.viewId, setup),
     vscode.window.registerWebviewViewProvider(HelpView.viewId, help),
     vscode.window.registerWebviewViewProvider(ResultsPanel.viewId, panel, { webviewOptions: { retainContextWhenHidden: true } }),
-    vscode.languages.registerCompletionItemProvider({ language: 'sql' }, completion, '.', ' '),
+    vscode.languages.registerCompletionItemProvider({ language: 'sql' }, completion, '.'),
     vscode.languages.registerHoverProvider({ language: 'sql' }, completion),
     vscode.languages.registerDocumentLinkProvider({ language: 'sql' }, new ObjectLinks(mgr, completion.routines)),
     status,

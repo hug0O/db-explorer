@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.40.0
+
+- **Plus d'aide à la saisie automatique quand rien n'est saisi** : après Entrée ou une espace, l'extension n'ouvre plus la liste (c'est elle qui insérait la première table de la base quand on appuyait de nouveau sur Entrée). La liste s'ouvre maintenant uniquement avec **Ctrl+Espace**, après un **point** (`alias.`), ou dès qu'on a commencé à taper un mot.
+- **Jointures intelligentes dès la première `JOIN`** : les propositions d'après les clés étrangères (tables à joindre, conditions `ON`) pouvaient manquer sur la première jointure, le temps de charger les clés de la première table (la liste s'affichait sans elles au bout de 1,2 s). Les colonnes et clés étrangères des tables de la requête sont maintenant préchargées en tâche de fond pendant la saisie, et l'attente passe à 5 s pour les clés étrangères.
+
 ## 0.39.0
 
 - **Reconnexion à la réouverture des fichiers SQL** : l'extension retient la connexion de chaque fichier SQL du dossier. Quand VS Code rouvre le dossier avec ses fichiers et que cette connexion n'est plus ouverte, un message propose de se reconnecter (une seule question par connexion et par session ; tous les fichiers de cette connexion y sont alors rattachés). Si la connexion est déjà ouverte, le fichier s'y rattache sans rien demander. Désactivable avec `dbexplorer.offerReconnectOnOpen`.

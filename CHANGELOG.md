@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.40.0
+
+- **No automatic completion when nothing is typed**: after Enter or a space the extension no longer opens the list (it was what inserted the first table of the database when you pressed Enter again). The list now opens only with **Ctrl+Space**, after a **dot** (`alias.`), or as soon as you start typing a word.
+- **Smart joins from the very first `JOIN`**: the foreign-key based proposals (tables to join, `ON` conditions) could be missing on the first join while the keys of the first table were loading (the list came up without them after 1.2 s). Columns and foreign keys of the query's tables are now preloaded in the background while you type, and the wait for foreign keys goes up to 5 s.
+
 ## 0.39.0
 
 - **Reconnect when SQL files are reopened**: the extension remembers the connection of each SQL file of the folder. When VS Code reopens the folder with its files and that connection is no longer open, a message offers to reconnect (one question per connection and session; every file of that connection is then attached to it). If the connection is already open, the file attaches to it silently. Turn off with `dbexplorer.offerReconnectOnOpen`.

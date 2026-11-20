@@ -472,6 +472,7 @@ export class SqlCompletion implements vscode.CompletionItemProvider, vscode.Hove
 
   /** Positionné par l'écouteur « retour à la ligne » : traité comme un déclenchement automatique. */
   autoTrigger = false;
+  private lastExplicit = 0;
   private objNames = new WeakMap<Meta, Map<string, string>>();
   /** Packages, procédures, fonctions et paramètres (aide à la saisie et Ctrl+clic). */
   readonly routines = new RoutineCache();
@@ -571,6 +572,21 @@ export class SqlCompletion implements vscode.CompletionItemProvider, vscode.Hove
     return !c.skip && !c.qualified && (!!c.typeExpected || c.expectTable || c.afterTable || (c.expectColumn && (COLUMN_KW.has(c.prev) || c.prev === ',')));
   }
 
+  /** Charge à l'avance (en tâche de fond) colonnes et clés étrangères des tables de l'instruction : la 1re jointure est alors proposée tout de suite. */
+  warm(doc: vscode.TextDocument, pos: vscode.Position) {
+    const act = this.mgr.forDocument(doc.uri) ?? this.mgr.active;
+    if (!act) return;
+    const c = this.analyze(doc, pos);
+    if (c.skip || !c.whole) return;
+    const pid = act.profile.id;
+    const schema = act.session.conn.currentSchema;
+    for (const r of parseRefList(c.whole).filter((x) => !x.virtual)) {
+      const [o, tb] = r.table.includes('.') ? r.table.split('.') : [schema, r.table];
+      void this.cache.fksFor(pid, o.replace(/"/g, ''), tb.replace(/"/g, '')).catch(() => undefined);
+      void this.cache.columns(pid, o.replace(/"/g, ''), tb.replace(/"/g, '')).catch(() => undefined);
+    }
+  }
+
   private schemaCache = new Map<string, { p: Promise<string[]>; at: number }>();
 
   /** Liste des schémas, mémorisée 10 min (SELECT DISTINCT owner sur une grosse base Oracle est coûteux). */
@@ -597,6 +613,9 @@ export class SqlCompletion implements vscode.CompletionItemProvider, vscode.Hove
     this.autoTrigger = false;
     const empty = new vscode.CompletionList([], false);
     if (c.skip) return empty;
+    // rien de saisi (retour à la ligne, espace…) : aucune proposition automatique — seulement sur Ctrl+Espace, après « . », ou une fois qu'on a commencé à taper
+    if (ctx.triggerKind === vscode.CompletionTriggerKind.Invoke) this.lastExplicit = Date.now();
+    else if (!c.partial && !c.qualified && !(ctx.triggerKind === vscode.CompletionTriggerKind.TriggerForIncompleteCompletions && Date.now() - this.lastExplicit < 30_000)) return empty;
     if (auto && !(c.expectTable || c.expectColumn || c.afterTable || c.typeExpected)) return empty;
 
     const lower = c.partial !== '' && c.partial === c.partial.toLowerCase();
@@ -617,8 +636,8 @@ export class SqlCompletion implements vscode.CompletionItemProvider, vscode.Hove
     // Jamais plus de ~1,2 s : si la base est lente, on répond avec ce qu'on a (cache) et on ré-ouvre la liste dès que la donnée arrive.
     const pend: Promise<unknown>[] = [];
     let hint = '';
-    const guard = async <T>(p: Promise<T>, fallback: T, label?: string): Promise<T> => {
-      const r = await within(p.catch(() => fallback), 1200);
+    const guard = async <T>(p: Promise<T>, fallback: T, label?: string, ms = 1200): Promise<T> => {
+      const r = await within(p.catch(() => fallback), ms);
       if (r === TIMEOUT) {
         pend.push(p.catch(() => undefined));
         if (label) hint = label;
@@ -793,7 +812,7 @@ export class SqlCompletion implements vscode.CompletionItemProvider, vscode.Hove
         const lists = await Promise.all(
           fkRefs.map((r) => {
             const [o, tb] = r.table.includes('.') ? r.table.split('.') : [schema, r.table];
-            return guard(this.cache.fksFor(pid, o, tb), [] as ForeignKey[]);
+            return guard(this.cache.fksFor(pid, o, tb), [] as ForeignKey[], undefined, 5000); // les clés étrangères de la 1re jointure peuvent demander la connexion de métadonnées
           })
         );
         const seenFk = new Set<string>();
