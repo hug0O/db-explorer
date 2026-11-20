@@ -810,6 +810,8 @@ export const FR: Record<string, string> = {
   "only in": "seulement dans",
   "Right-click a header or a cell: filter, pin": "Clic droit sur un en-tête ou une cellule : filtrer, épingler",
   "System value": "Valeur système",
+  "Not now": "Pas maintenant",
+  "\"{0}\" was last used with the connection \"{1}\". Reconnect?": "« {0} » utilisait la connexion « {1} ». Se reconnecter ?",
   "Filter this column…": "Filtrer cette colonne…",
   "Keep only: {0}": "Garder seulement : {0}",
   "Exclude: {0}": "Exclure : {0}",

@@ -152,5 +152,6 @@
   "cfg.liveChecks": "Contrôles instantanés pendant la frappe (sans base de données) : parenthèses non équilibrées, UPDATE / DELETE sans WHERE.",
   "cfg.scanOnConnect": "Scanner tout le schéma (objets et colonnes, pour l’aide à la saisie) dès la connexion. Désactivé par défaut : le cache est lu sur disque et le scan ne démarre que quand vous utilisez l’aide à la saisie ou après une modification de structure (CREATE / ALTER / DROP).",
   "cmd.smartEnter": "Aligner le retour à la ligne",
-  "cfg.alignNewLine": "Entrée dans un éditeur SQL : la nouvelle ligne s’aligne sous le premier élément de la ligne précédente (SELECT a,⏎ → sous a) au lieu de revenir au début de la ligne."
+  "cfg.alignNewLine": "Aligner les mots-clés SQL (style « rivière ») : après une virgule en fin de ligne, Entrée aligne sous le premier élément, et FROM / JOIN / WHERE / AND / OR / GROUP BY / ORDER BY se calent sur la bonne colonne quand on les tape.",
+  "cfg.offerReconnectOnOpen": "Proposer de se reconnecter quand des fichiers SQL sont rouverts avec le dossier (à la connexion qu’ils utilisaient en dernier)."
 }

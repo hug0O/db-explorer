@@ -30,12 +30,15 @@ export class ConnectionManager {
 
   constructor(private readonly ctx: vscode.ExtensionContext) {
     this.profiles = ctx.globalState.get<Profile[]>(PROFILES_KEY, []);
+    this.saved = ctx.workspaceState.get<Record<string, string>>('dbexplorer.docConns', {});
     initOracle(vscode.workspace.getConfiguration('dbexplorer').get<string>('oracleClientLibDir'), (m) => vscode.window.showWarningMessage(`DB Explorer: ${m}`));
   }
 
   private timer?: NodeJS.Timeout;
   /** Éditeur (uri) → connexion sur laquelle il exécute ses requêtes. */
   private bindings = new Map<string, string>();
+  /** Fichiers (uri) -> connexion utilisee a la derniere session de ce dossier : sert a proposer de se reconnecter a la reouverture. */
+  private saved: Record<string, string> = {};
   private passwords = new Map<string, string>();
   private aux = new Map<string, Promise<DbConn>>();
   /** Connexions auxiliaires effectivement ouvertes (hors repli sur la connexion principale). */
@@ -139,7 +142,17 @@ export class ConnectionManager {
     this.touchMru(pid);
     if (this.bindings.get(uri.toString()) === pid) return;
     this.bindings.set(uri.toString(), pid);
+    if (uri.scheme === 'file' && this.saved[uri.toString()] !== pid) {
+      this.saved[uri.toString()] = pid;
+      const keys = Object.keys(this.saved);
+      for (const k of keys.slice(0, Math.max(0, keys.length - 300))) delete this.saved[k];
+      void this.ctx.workspaceState.update('dbexplorer.docConns', this.saved);
+    }
     this.emitter.fire();
+  }
+  /** Connexion memorisee pour ce fichier lors d'une session precedente (meme si elle n'est plus ouverte). */
+  savedFor(uri: vscode.Uri): string | undefined {
+    return this.saved[uri.toString()];
   }
   bound(uri: vscode.Uri): string | undefined {
     return this.bindings.get(uri.toString());
@@ -345,6 +358,8 @@ export class ConnectionManager {
     await this.disconnect(id);
     this.profiles = this.profiles.filter((p) => p.id !== id);
     for (const [k, v] of [...this.bindings]) if (v === id) this.bindings.delete(k);
+    for (const k of Object.keys(this.saved)) if (this.saved[k] === id) delete this.saved[k];
+    void this.ctx.workspaceState.update('dbexplorer.docConns', this.saved);
     await this.ctx.secrets.delete(`dbexplorer.pw.${id}`);
     await this.save();
   }

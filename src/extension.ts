@@ -1447,6 +1447,74 @@ ${t('Click to switch connection')}`;
     })
   );
 
+  // ---- fichiers SQL rouverts avec le dossier : proposer de se reconnecter à la connexion qu'ils utilisaient
+  const declinedReconnect = new Set<string>();
+  const askingReconnect = new Set<string>();
+  const offerRestore = async (doc: vscode.TextDocument) => {
+    if (doc.languageId !== 'sql' || doc.uri.scheme !== 'file' || mgr.forDocument(doc.uri)) return;
+    if (!vscode.workspace.getConfiguration('dbexplorer').get<boolean>('offerReconnectOnOpen', true)) return;
+    const pid = mgr.savedFor(doc.uri);
+    const prof = pid ? mgr.get(pid) : undefined;
+    if (!pid || !prof) return;
+    if (mgr.isConnected(pid)) return void mgr.bind(doc.uri, pid);
+    if (declinedReconnect.has(pid) || askingReconnect.has(pid)) return;
+    askingReconnect.add(pid);
+    try {
+      const yes = t('Connect');
+      const pick = await vscode.window.showInformationMessage(t('"{0}" was last used with the connection "{1}". Reconnect?', path.basename(doc.uri.fsPath), prof.name), yes, t('Not now'));
+      if (pick !== yes) return void declinedReconnect.add(pid);
+      await mgr.connect(pid);
+      if (!mgr.isConnected(pid)) return;
+      completion.preload();
+      for (const d of vscode.workspace.textDocuments) if (d.languageId === 'sql' && mgr.savedFor(d.uri) === pid && !mgr.forDocument(d.uri)) mgr.bind(d.uri, pid);
+      mgr.setActive(pid);
+    } finally {
+      askingReconnect.delete(pid);
+    }
+  };
+  ctx.subscriptions.push(vscode.workspace.onDidOpenTextDocument((d) => void offerRestore(d)));
+  setTimeout(() => {
+    for (const e of vscode.window.visibleTextEditors) void offerRestore(e.document);
+  }, 1500);
+
+  // ---- mots-clés alignés « en rivière » : FROM / JOIN / WHERE / AND… se calent à la frappe de l'espace qui suit
+  const RIVER_KW = /^( *)(FROM|(?:(?:LEFT|RIGHT|FULL)(?:\s+OUTER)?|INNER|CROSS|NATURAL)\s+JOIN|JOIN|WHERE|AND|OR|GROUP\s+BY|ORDER\s+BY|HAVING|SET) $/i;
+  const riverOffset = (kw: string): number => {
+    const k = kw.toUpperCase().replace(/\s+/g, ' ');
+    if (k === 'FROM' || k.endsWith('JOIN')) return 2;
+    if (k === 'AND' || k === 'SET') return 3;
+    if (k === 'OR') return 4;
+    return 1; // WHERE, GROUP BY, ORDER BY, HAVING
+  };
+  ctx.subscriptions.push(
+    vscode.workspace.onDidChangeTextDocument((e) => {
+      if (e.document.languageId !== 'sql' || e.contentChanges.length !== 1) return;
+      const ch = e.contentChanges[0];
+      if (ch.text !== ' ' || ch.rangeLength !== 0 || !vscode.workspace.getConfiguration('dbexplorer').get<boolean>('alignNewLine', true)) return;
+      const ed = vscode.window.visibleTextEditors.find((x) => x.document === e.document);
+      if (!ed) return;
+      const ln = ch.range.start.line;
+      const text = e.document.lineAt(ln).text;
+      const m = RIVER_KW.exec(text.slice(0, ch.range.start.character + 1));
+      if (!m || text.slice(ch.range.start.character + 1).trim() !== '') return;
+      // base : indentation de la ligne SELECT / UPDATE / DELETE… de la même instruction (remontée jusqu'à une ligne vide ou un « ; »)
+      let base: number | undefined;
+      for (let i = ln - 1, n = 0; i >= 0 && n < 300; i--, n++) {
+        const tx = e.document.lineAt(i).text;
+        if (!tx.trim() || /;\s*$/.test(tx)) break;
+        const st = /^( *)(SELECT|UPDATE|DELETE|MERGE|WITH)\b/i.exec(tx);
+        if (st) {
+          base = st[1].length;
+          break;
+        }
+      }
+      if (base === undefined) return;
+      const want = base + riverOffset(m[2]);
+      if (m[1].length === want) return;
+      void ed.edit((b) => b.replace(new vscode.Range(ln, 0, ln, m[1].length), ' '.repeat(want)), { undoStopBefore: false, undoStopAfter: false });
+    })
+  );
+
   reg('dbexplorer.exportResults', () => runner.exportResults());
 
   // Optimisation de la requête courante (règles par SGBD + index réels + plan d'exécution)

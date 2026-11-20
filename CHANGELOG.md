@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.39.0
+
+- **Reconnect when SQL files are reopened**: the extension remembers the connection of each SQL file of the folder. When VS Code reopens the folder with its files and that connection is no longer open, a message offers to reconnect (one question per connection and session; every file of that connection is then attached to it). If the connection is already open, the file attaches to it silently. Turn off with `dbexplorer.offerReconnectOnOpen`.
+- **River-style aligned queries**: after a line ending with a comma, Enter puts the cursor under the first field (`SELECT A,⏎` → under `A`). And when you type `FROM`, `JOIN` / `LEFT JOIN`…, `WHERE`, `AND`, `OR`, `GROUP BY`, `ORDER BY`, `HAVING`, `SET` at the start of a line, the keyword snaps to the right column relative to the query's `SELECT` (`  FROM`, `  LEFT JOIN`, ` WHERE`, `   AND`…), like in your example. Same setting as before: `dbexplorer.alignNewLine`.
+
 ## 0.38.0
 
 - **Completion of Oracle system values**: `CURRENT_DATE`, `CURRENT_TIMESTAMP`, `LOCALTIMESTAMP`, `SYSDATE`, `SYSTIMESTAMP`, `SESSIONTIMEZONE`, `DBTIMEZONE`, `USER`, `ROWNUM`, `ROWID`, `LEVEL`… are suggested (with a description) and explained on hover. Added functions: `NULLIF`, `GREATEST`, `LEAST`, `INITCAP`, `LTRIM`/`RTRIM`, `TRANSLATE`, `EXTRACT`, `LAG`/`LEAD`, `DENSE_RANK`, `REGEXP_*`, `SYS_CONTEXT`…; added keywords: `LEFT/RIGHT OUTER JOIN`, `NATURAL JOIN`, `NULLS FIRST/LAST`, etc.

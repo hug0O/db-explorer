@@ -2,7 +2,7 @@
   "name": "db-explorer-Multi-SQL",
   "displayName": "DB Explorer Multi-SQL",
   "description": "%ext.description%",
-  "version": "0.38.0",
+  "version": "0.39.0",
   "publisher": "hugo0",
   "license": "MIT",
   "engines": {
@@ -1255,6 +1255,11 @@
             "type": "boolean",
             "default": false,
             "description": "%cfg.scanOnConnect%"
+          },
+          "dbexplorer.offerReconnectOnOpen": {
+            "type": "boolean",
+            "default": true,
+            "description": "%cfg.offerReconnectOnOpen%"
           },
           "dbexplorer.alignNewLine": {
             "type": "boolean",

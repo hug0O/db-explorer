@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.39.0
+
+- **Reconnexion à la réouverture des fichiers SQL** : l'extension retient la connexion de chaque fichier SQL du dossier. Quand VS Code rouvre le dossier avec ses fichiers et que cette connexion n'est plus ouverte, un message propose de se reconnecter (une seule question par connexion et par session ; tous les fichiers de cette connexion y sont alors rattachés). Si la connexion est déjà ouverte, le fichier s'y rattache sans rien demander. Désactivable avec `dbexplorer.offerReconnectOnOpen`.
+- **Requêtes alignées « en rivière »** : après une ligne qui se termine par une virgule, Entrée aligne le curseur sous le premier champ (`SELECT A,⏎` → sous `A`). Et quand on tape `FROM`, `JOIN` / `LEFT JOIN`…, `WHERE`, `AND`, `OR`, `GROUP BY`, `ORDER BY`, `HAVING`, `SET` en début de ligne, le mot-clé se cale tout seul sur la bonne colonne par rapport au `SELECT` de la requête (`  FROM`, `  LEFT JOIN`, ` WHERE`, `   AND`…), comme dans votre exemple. Même réglage que précédemment : `dbexplorer.alignNewLine`.
+
 ## 0.38.0
 
 - **Aide à la saisie des valeurs système Oracle** : `CURRENT_DATE`, `CURRENT_TIMESTAMP`, `LOCALTIMESTAMP`, `SYSDATE`, `SYSTIMESTAMP`, `SESSIONTIMEZONE`, `DBTIMEZONE`, `USER`, `ROWNUM`, `ROWID`, `LEVEL`… sont proposées (avec leur description) et décrites au survol. Fonctions ajoutées : `NULLIF`, `GREATEST`, `LEAST`, `INITCAP`, `LTRIM`/`RTRIM`, `TRANSLATE`, `EXTRACT`, `LAG`/`LEAD`, `DENSE_RANK`, `REGEXP_*`, `SYS_CONTEXT`… ; mots-clés ajoutés : `LEFT/RIGHT OUTER JOIN`, `NATURAL JOIN`, `NULLS FIRST/LAST`, etc.
